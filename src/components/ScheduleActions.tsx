@@ -53,7 +53,7 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
       toast({
         title: "PDF gerado com sucesso!",
         description: "O PDF da escala foi gerado e baixado.",
-        variant: "default", // Using 'default' instead of 'success'
+        variant: "default",
       });
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
