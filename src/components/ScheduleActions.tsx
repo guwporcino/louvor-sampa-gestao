@@ -1,4 +1,3 @@
-
 import React, { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Schedule } from "../types";
@@ -29,10 +28,9 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
         description: "Por favor, aguarde enquanto geramos o PDF da escala."
       });
 
-      // Use default options compatible with the library
-      await JsPDFGenerator(contentRef.current, {
-        filename: `Escala_${schedule.title.replace(/\s+/g, '_')}.pdf`,
-      });
+      // Use jspdf-html2canvas without options to use defaults
+      // The library will automatically download the file
+      await JsPDFGenerator(contentRef.current);
 
       toast({
         title: "PDF gerado com sucesso!",
@@ -68,15 +66,12 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
         description: "Por favor, aguarde enquanto preparamos a escala."
       });
 
-      // Generate PDF and get the blob
-      const result = await JsPDFGenerator(contentRef.current, {
-        returnPromise: true // This should return a Promise we can use
-      });
+      // Generate PDF using the basic function which returns a Promise<jsPDF>
+      const pdfResult = await JsPDFGenerator(contentRef.current);
       
-      // Convert the result to a blob
-      // We need to use the jsPDF instance's output method
+      // Convert the jsPDF instance to a blob
       // @ts-ignore - Type definitions might be incomplete
-      const pdfBlob = result.output('blob');
+      const pdfBlob = pdfResult.output('blob');
       
       const pdfFile = new File([pdfBlob], `Escala_${schedule.title.replace(/\s+/g, '_')}.pdf`, { 
         type: 'application/pdf' 
