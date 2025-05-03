@@ -1,11 +1,9 @@
-
 import React, { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Schedule } from "../types";
 import { Download, Share2 } from "lucide-react";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { useToast } from "@/components/ui/use-toast";
+import JsPDFGenerator from "jspdf-html2canvas";
 
 interface ScheduleActionsProps {
   schedule: Schedule;
@@ -30,25 +28,14 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
         description: "Por favor, aguarde enquanto geramos o PDF da escala."
       });
 
-      const canvas = await html2canvas(contentRef.current, {
-        scale: 2,
-        logging: false,
-        useCORS: true,
-      });
-      
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
+      const jsPDFGenerator = new JsPDFGenerator();
+      await jsPDFGenerator.generate(contentRef.current, {
+        filename: `Escala_${schedule.title.replace(/\s+/g, '_')}.pdf`,
         format: "a4",
+        orientation: "portrait",
+        quality: 2,
+        unit: "mm"
       });
-      
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Escala_${schedule.title.replace(/\s+/g, '_')}.pdf`);
 
       toast({
         title: "PDF gerado com sucesso!",
@@ -84,28 +71,17 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
         description: "Por favor, aguarde enquanto preparamos a escala."
       });
 
-      const canvas = await html2canvas(contentRef.current, {
-        scale: 2,
-        logging: false,
-        useCORS: true,
-      });
-      
-      // Converter para blob
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
+      const jsPDFGenerator = new JsPDFGenerator();
+      const pdfBlob = await jsPDFGenerator.generateBlob(contentRef.current, {
         format: "a4",
+        orientation: "portrait",
+        quality: 2,
+        unit: "mm"
       });
       
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      
-      const pdfBlob = pdf.output('blob');
-      const pdfFile = new File([pdfBlob], `Escala_${schedule.title.replace(/\s+/g, '_')}.pdf`, { type: 'application/pdf' });
+      const pdfFile = new File([pdfBlob], `Escala_${schedule.title.replace(/\s+/g, '_')}.pdf`, { 
+        type: 'application/pdf' 
+      });
 
       await navigator.share({
         title: `Escala: ${schedule.title}`,
