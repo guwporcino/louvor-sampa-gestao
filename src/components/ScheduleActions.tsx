@@ -53,7 +53,7 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
       toast({
         title: "PDF gerado com sucesso!",
         description: "O PDF da escala foi gerado e baixado.",
-        variant: "default", // Changed from "success" to "default"
+        variant: "default", // Using 'default' instead of 'success'
       });
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
@@ -117,11 +117,11 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
         title: "Compartilhamento iniciado",
         description: "Escolha o aplicativo para compartilhar a escala.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao compartilhar:", error);
       
       // Se for erro de cancelamento pelo usuário, não mostrar toast de erro
-      if ((error as any).name === "AbortError") return;
+      if (error.name === "AbortError") return;
       
       toast({
         title: "Erro ao compartilhar",
