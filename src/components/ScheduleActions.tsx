@@ -1,3 +1,4 @@
+
 import React, { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Schedule } from "../types";
@@ -28,14 +29,17 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
         description: "Por favor, aguarde enquanto geramos o PDF da escala."
       });
 
-      const jsPDFGenerator = new JsPDFGenerator();
-      await jsPDFGenerator.generate(contentRef.current, {
+      // Create a new instance of JsPDFGenerator - without using 'new' keyword
+      const options = {
         filename: `Escala_${schedule.title.replace(/\s+/g, '_')}.pdf`,
         format: "a4",
         orientation: "portrait",
         quality: 2,
         unit: "mm"
-      });
+      };
+      
+      // Directly use JsPDFGenerator.generate()
+      await JsPDFGenerator.generate(contentRef.current, options);
 
       toast({
         title: "PDF gerado com sucesso!",
@@ -71,13 +75,15 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
         description: "Por favor, aguarde enquanto preparamos a escala."
       });
 
-      const jsPDFGenerator = new JsPDFGenerator();
-      const pdfBlob = await jsPDFGenerator.generateBlob(contentRef.current, {
+      const options = {
         format: "a4",
         orientation: "portrait",
         quality: 2,
         unit: "mm"
-      });
+      };
+      
+      // Directly use JsPDFGenerator.generateBlob()
+      const pdfBlob = await JsPDFGenerator.generateBlob(contentRef.current, options);
       
       const pdfFile = new File([pdfBlob], `Escala_${schedule.title.replace(/\s+/g, '_')}.pdf`, { 
         type: 'application/pdf' 
