@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +38,7 @@ const Operators = () => {
   const [operators, setOperators] = useState<Operator[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const { currentDepartment } = useDepartment();
+  const { currentDepartment, associateUserWithDepartment } = useDepartment();
 
   // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -60,18 +59,17 @@ const Operators = () => {
   const fetchOperators = async () => {
     try {
       setLoading(true);
-      // Busca operadores (usuários com associação ao departamento Sonoplastia)
-      const soundDepartment = await supabase
-        .from('departments')
-        .select('id')
-        .eq('name', 'Sonoplastia')
-        .single();
-        
-      if (!soundDepartment.data) {
-        throw new Error("Departamento de Sonoplastia não encontrado");
+      
+      // Early exit if no current department
+      if (!currentDepartment) {
+        setOperators([]);
+        return;
       }
       
-      const { data: operatorData, error } = await supabase
+      console.log("Operators: Fetching operators for department:", currentDepartment?.name);
+      
+      // Fetch operators (users associated with current department)
+      const { data: userDeptData, error } = await supabase
         .from('user_departments')
         .select(`
           profiles:user_id (
@@ -82,11 +80,13 @@ const Operators = () => {
             active
           )
         `)
-        .eq('department_id', soundDepartment.data.id);
+        .eq('department_id', currentDepartment.id);
       
       if (error) throw error;
       
-      const formattedOperators = operatorData
+      console.log("Operators: Fetched user departments:", userDeptData);
+      
+      const formattedOperators = userDeptData
         .map((item) => item.profiles)
         .filter(Boolean);
       
@@ -150,14 +150,8 @@ const Operators = () => {
     setIsSubmitting(true);
     
     try {
-      const soundDepartment = await supabase
-        .from('departments')
-        .select('id')
-        .eq('name', 'Sonoplastia')
-        .single();
-        
-      if (!soundDepartment.data) {
-        throw new Error("Departamento de Sonoplastia não encontrado");
+      if (!currentDepartment) {
+        throw new Error("Departamento não selecionado");
       }
 
       if (editingOperator) {
@@ -179,6 +173,8 @@ const Operators = () => {
           description: "Operador atualizado com sucesso"
         });
       } else {
+        console.log("Creating new operator with data:", formData);
+        
         // Create user using Supabase Auth
         const { data: userData, error: authError } = await supabase.auth.signUp({
           email: formData.email,
@@ -199,6 +195,8 @@ const Operators = () => {
           throw new Error("Falha ao criar usuário");
         }
         
+        console.log("Created user:", userData.user.id);
+        
         // Update additional profile info if needed
         await supabase
           .from('profiles')
@@ -208,16 +206,8 @@ const Operators = () => {
           })
           .eq('id', userData.user.id);
         
-        // Associate with Sonoplastia department
-        const { error: deptError } = await supabase
-          .from('user_departments')
-          .insert({
-            user_id: userData.user.id,
-            department_id: soundDepartment.data.id,
-            is_admin: false
-          });
-
-        if (deptError) throw deptError;
+        // Associate with current department
+        await associateUserWithDepartment(userData.user.id, currentDepartment.id, false);
         
         toast({
           title: "Sucesso",

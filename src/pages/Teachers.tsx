@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +39,7 @@ const Teachers = () => {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const { currentDepartment } = useDepartment();
+  const { currentDepartment, associateUserWithDepartment } = useDepartment();
   const { user } = useAuth();
 
   // Dialog state
@@ -62,18 +61,17 @@ const Teachers = () => {
   const fetchTeachers = async () => {
     try {
       setLoading(true);
-      // Busca professores (usuários com associação ao departamento Escola Bíblica)
-      const schoolDepartment = await supabase
-        .from('departments')
-        .select('id')
-        .eq('name', 'Escola Bíblica')
-        .single();
-        
-      if (!schoolDepartment.data) {
-        throw new Error("Departamento de Escola Bíblica não encontrado");
+      
+      // Early exit if no current department
+      if (!currentDepartment) {
+        setTeachers([]);
+        return;
       }
       
-      const { data: teacherData, error } = await supabase
+      console.log("Teachers: Fetching teachers for department:", currentDepartment?.name);
+      
+      // Busca professores (usuários com associação ao departamento Escola Bíblica)
+      const { data: userDeptData, error } = await supabase
         .from('user_departments')
         .select(`
           profiles:user_id (
@@ -84,11 +82,13 @@ const Teachers = () => {
             active
           )
         `)
-        .eq('department_id', schoolDepartment.data.id);
+        .eq('department_id', currentDepartment.id);
       
       if (error) throw error;
       
-      const formattedTeachers = teacherData
+      console.log("Teachers: Fetched user departments:", userDeptData);
+      
+      const formattedTeachers = userDeptData
         .map((item) => item.profiles)
         .filter(Boolean);
       
@@ -152,15 +152,8 @@ const Teachers = () => {
     setIsSubmitting(true);
     
     try {
-      // Buscar o departamento de Escola Bíblica
-      const schoolDepartment = await supabase
-        .from('departments')
-        .select('id')
-        .eq('name', 'Escola Bíblica')
-        .single();
-        
-      if (!schoolDepartment.data) {
-        throw new Error("Departamento de Escola Bíblica não encontrado");
+      if (!currentDepartment) {
+        throw new Error("Departamento não selecionado");
       }
 
       if (editingTeacher) {
@@ -182,6 +175,8 @@ const Teachers = () => {
           description: "Professor atualizado com sucesso"
         });
       } else {
+        console.log("Creating new teacher with data:", formData);
+        
         // Create user using Supabase Auth
         const { data: userData, error: authError } = await supabase.auth.signUp({
           email: formData.email,
@@ -202,6 +197,8 @@ const Teachers = () => {
           throw new Error("Falha ao criar usuário");
         }
         
+        console.log("Created user:", userData.user.id);
+        
         // Update additional profile info if needed
         await supabase
           .from('profiles')
@@ -211,16 +208,8 @@ const Teachers = () => {
           })
           .eq('id', userData.user.id);
         
-        // Associar ao departamento Escola Bíblica
-        const { error: deptError } = await supabase
-          .from('user_departments')
-          .insert({
-            user_id: userData.user.id,
-            department_id: schoolDepartment.data.id,
-            is_admin: false
-          });
-
-        if (deptError) throw deptError;
+        // Associate user with the departamento Escola Bíblica
+        await associateUserWithDepartment(userData.user.id, currentDepartment.id, false);
         
         toast({
           title: "Sucesso",

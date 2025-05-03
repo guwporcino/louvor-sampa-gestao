@@ -14,6 +14,7 @@ interface DepartmentContextType {
   hasAccess: (departmentId: string) => boolean;
   isAdmin: (departmentId: string) => boolean;
   refetchDepartments: () => Promise<void>;
+  associateUserWithDepartment: (userId: string, departmentId: string, isAdmin?: boolean) => Promise<void>;
 }
 
 const DepartmentContext = createContext<DepartmentContextType | undefined>(undefined);
@@ -123,6 +124,37 @@ export const DepartmentProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   };
 
+  // Associate a user with a department
+  const associateUserWithDepartment = async (userId: string, departmentId: string, isAdmin: boolean = false) => {
+    try {
+      console.log(`DepartmentContext: Associating user ${userId} with department ${departmentId}, isAdmin: ${isAdmin}`);
+      
+      const { data, error } = await supabase
+        .from('user_departments')
+        .insert({
+          user_id: userId,
+          department_id: departmentId,
+          is_admin: isAdmin
+        });
+      
+      if (error) {
+        console.error("Error associating user with department:", error);
+        throw error;
+      }
+      
+      console.log("DepartmentContext: User associated with department successfully");
+      return data;
+    } catch (error: any) {
+      console.error("DepartmentContext: Failed to associate user with department", error);
+      toast({
+        title: 'Erro',
+        description: `Falha ao associar usuário ao departamento: ${error.message}`,
+        variant: 'destructive',
+      });
+      throw error;
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchDepartments();
@@ -158,7 +190,8 @@ export const DepartmentProvider: React.FC<{ children: ReactNode }> = ({ children
         isLoading,
         hasAccess,
         isAdmin,
-        refetchDepartments: fetchDepartments
+        refetchDepartments: fetchDepartments,
+        associateUserWithDepartment
       }}
     >
       {children}
