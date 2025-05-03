@@ -11,6 +11,7 @@ import ScheduleList from "@/components/ScheduleList";
 import ScheduleForm from "@/components/ScheduleForm";
 import { useDepartment } from "@/contexts/DepartmentContext";
 import { format } from "date-fns";
+import ScheduleActions from "@/components/ScheduleActions";
 
 const EBDSchedules = () => {
   const { id } = useParams();
