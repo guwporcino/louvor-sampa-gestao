@@ -2,7 +2,7 @@
 import React, { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Schedule } from "../types";
-import { Download, Share } from "lucide-react";
+import { Download, Share2 } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useToast } from "@/components/ui/use-toast";
@@ -53,7 +53,7 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
       toast({
         title: "PDF gerado com sucesso!",
         description: "O PDF da escala foi gerado e baixado.",
-        variant: "success",
+        variant: "default", // Changed from "success" to "default"
       });
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
@@ -173,7 +173,7 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
           variant="default"
           className="flex items-center"
         >
-          <Share className="mr-1 h-4 w-4" />
+          <Share2 className="mr-1 h-4 w-4" />
           Compartilhar
         </Button>
       </div>

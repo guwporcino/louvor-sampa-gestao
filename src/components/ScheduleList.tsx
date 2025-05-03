@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Schedule } from "../types";
-import { Calendar, Download, FileText, Share } from "lucide-react";
+import { Calendar, Download, FileText, Share2 } from "lucide-react";
 
 interface ScheduleListProps {
   schedules: Schedule[];
