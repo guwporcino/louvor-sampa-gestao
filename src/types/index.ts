@@ -31,6 +31,34 @@ export interface Song {
   createdAt: Date;
 }
 
+export interface Department {
+  id: string;
+  name: string;
+  description?: string;
+  active?: boolean;
+  createdAt?: Date;
+}
+
+export interface Classroom {
+  id: string;
+  name: string;
+  description?: string;
+  ageGroup?: string;
+  capacity?: number;
+  location?: string;
+  active?: boolean;
+  createdAt?: Date;
+}
+
+export interface UserDepartment {
+  id: string;
+  userId: string;
+  departmentId: string;
+  isAdmin: boolean;
+  createdAt: Date;
+  department?: Department;
+}
+
 export interface Schedule {
   id: string;
   date: Date;
@@ -39,6 +67,8 @@ export interface Schedule {
   members: string[]; // Member IDs
   songs: string[]; // Song IDs
   isPublished: boolean;
+  departmentId?: string;
+  classroomId?: string;
   createdAt: Date;
 }
 

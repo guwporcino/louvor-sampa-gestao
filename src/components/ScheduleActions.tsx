@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Schedule } from "../types";
 import { Download, Share2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useDepartment } from "../contexts/DepartmentContext";
 import JsPDFGenerator from "jspdf-html2canvas";
 
 interface ScheduleActionsProps {
   schedule: Schedule;
-  members: any[]; // TODO: Usar o tipo correto
-  songs: any[]; // TODO: Usar o tipo correto
+  members: any[]; 
+  songs: any[];
 }
 
 const ScheduleActions: React.FC<ScheduleActionsProps> = ({
@@ -19,30 +20,33 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
 }) => {
   const { toast } = useToast();
   const contentRef = useRef<HTMLDivElement>(null);
-
+  const { departments } = useDepartment();
+  
+  // Find department name
+  const department = departments.find(d => d.id === schedule.departmentId);
+  
   const generatePDF = async () => {
     if (!contentRef.current) return;
 
     try {
       toast({
         title: "Gerando PDF...",
-        description: "Por favor, aguarde enquanto geramos o PDF da escala."
+        description: "Por favor, aguarde enquanto geramos o PDF."
       });
 
-      // Use jspdf-html2canvas without options to use defaults
-      // The library will automatically download the file with filename based on element content
+      // Use jspdf-html2canvas with default options
       await JsPDFGenerator(contentRef.current);
 
       toast({
         title: "PDF gerado com sucesso!",
-        description: "O PDF da escala foi gerado e baixado.",
+        description: "O PDF foi gerado e baixado.",
         variant: "default",
       });
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
       toast({
         title: "Erro ao gerar PDF",
-        description: "Não foi possível gerar o PDF da escala.",
+        description: "Não foi possível gerar o PDF.",
         variant: "destructive",
       });
     }
@@ -64,14 +68,13 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
 
       toast({
         title: "Preparando para compartilhar...",
-        description: "Por favor, aguarde enquanto preparamos a escala."
+        description: "Por favor, aguarde enquanto preparamos os dados."
       });
 
-      // Generate PDF - we'll use a simple approach
+      // Generate PDF
       const doc = await JsPDFGenerator(contentRef.current);
       
-      // Convert to blob using output method
-      // @ts-ignore - Type definitions might be incomplete for jspdf output
+      // Convert to blob
       const pdfBlob = doc.output('blob');
       
       const pdfFile = new File([pdfBlob], `Escala_${schedule.title.replace(/\s+/g, '_')}.pdf`, { 
@@ -79,14 +82,14 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
       });
 
       await navigator.share({
-        title: `Escala: ${schedule.title}`,
-        text: `Compartilhando escala de ministração: ${schedule.title}`,
+        title: `${department?.name || 'Escala'}: ${schedule.title}`,
+        text: `Compartilhando: ${schedule.title}`,
         files: [pdfFile]
       });
 
       toast({
         title: "Compartilhamento iniciado",
-        description: "Escolha o aplicativo para compartilhar a escala.",
+        description: "Escolha o aplicativo para compartilhar.",
       });
     } catch (error: any) {
       console.error("Erro ao compartilhar:", error);
@@ -96,7 +99,7 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
       
       toast({
         title: "Erro ao compartilhar",
-        description: "Não foi possível compartilhar a escala. Tente baixar o PDF e compartilhar manualmente.",
+        description: "Não foi possível compartilhar. Tente baixar o PDF e compartilhar manualmente.",
         variant: "destructive",
       });
     }
@@ -124,9 +127,14 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
   // Buscar títulos das músicas selecionadas
   const getSelectedSongs = () => {
     return songs
-      .filter(song => schedule.songs.includes(song.id))
+      .filter(song => (schedule.songs || []).includes(song.id))
       .map(song => song.title);
   };
+  
+  // Determinar o tipo de conteúdo com base no departamento
+  const isDepartmentLouvor = department?.name === 'Louvor';
+  const isDepartmentEBD = department?.name === 'Escola Bíblica';
+  const isDepartmentSom = department?.name === 'Sonoplastia';
 
   return (
     <div className="w-full space-y-4">
@@ -159,6 +167,13 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
             {schedule.title}
           </h1>
           <p className="text-gray-600 mt-1">{formatDate(schedule.date)}</p>
+          
+          {department?.name && (
+            <p className="text-sm font-semibold text-gray-500 mt-1">
+              Departamento: {department.name}
+            </p>
+          )}
+          
           {schedule.description && (
             <p className="text-gray-700 mt-2 italic">{schedule.description}</p>
           )}
@@ -166,25 +181,38 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
 
         <div className="mb-6">
           <h2 className="text-lg font-semibold mb-2 text-worship-blue">
-            Músicos e Vocais
+            {isDepartmentLouvor ? 'Músicos e Vocais' : 
+              isDepartmentEBD ? 'Professores' : 
+              isDepartmentSom ? 'Operadores' : 
+              'Participantes'}
           </h2>
           <ul className="list-disc list-inside pl-2">
-            {getSelectedMembers().map((name, index) => (
-              <li key={index}>{name}</li>
-            ))}
+            {getSelectedMembers().length > 0 ? (
+              getSelectedMembers().map((name, index) => (
+                <li key={index}>{name}</li>
+              ))
+            ) : (
+              <li className="text-gray-500">Nenhum participante selecionado</li>
+            )}
           </ul>
         </div>
 
-        <div>
-          <h2 className="text-lg font-semibold mb-2 text-worship-blue">
-            Repertório
-          </h2>
-          <ol className="list-decimal list-inside pl-2">
-            {getSelectedSongs().map((title, index) => (
-              <li key={index}>{title}</li>
-            ))}
-          </ol>
-        </div>
+        {isDepartmentLouvor && (
+          <div>
+            <h2 className="text-lg font-semibold mb-2 text-worship-blue">
+              Repertório
+            </h2>
+            <ol className="list-decimal list-inside pl-2">
+              {getSelectedSongs().length > 0 ? (
+                getSelectedSongs().map((title, index) => (
+                  <li key={index}>{title}</li>
+                ))
+              ) : (
+                <li className="text-gray-500">Nenhuma música selecionada</li>
+              )}
+            </ol>
+          </div>
+        )}
       </div>
     </div>
   );

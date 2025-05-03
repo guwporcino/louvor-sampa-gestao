@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,13 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Schedule, Member, Song } from "../types";
+import { Schedule, Member, Song, Department, Classroom } from "../types";
 import { ptBR } from "date-fns/locale";
 import ScheduleActions from "./ScheduleActions";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useDepartment } from "../contexts/DepartmentContext";
+import { supabase } from "@/integrations/supabase/client";
+import LoadingSpinner from "./LoadingSpinner";
 
 interface ScheduleFormProps {
   schedule?: Schedule;
@@ -36,6 +40,9 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
 }) => {
   const isEditing = !!schedule && !viewMode;
   const isViewing = viewMode && !!schedule;
+  const { currentDepartment, departments } = useDepartment();
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
+  const [isLoadingClassrooms, setIsLoadingClassrooms] = useState(false);
 
   const [formData, setFormData] = useState<Partial<Schedule>>(
     schedule || {
@@ -45,8 +52,58 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
       members: [],
       songs: [],
       isPublished: false,
+      departmentId: currentDepartment?.id,
+      classroomId: undefined,
     }
   );
+
+  useEffect(() => {
+    // If no department is set, use the current department
+    if (!formData.departmentId && currentDepartment) {
+      setFormData(prev => ({ ...prev, departmentId: currentDepartment.id }));
+    }
+    
+    // Fetch classrooms if needed
+    if (formData.departmentId && getDepartmentName(formData.departmentId) === 'Escola Bíblica') {
+      fetchClassrooms();
+    }
+  }, [formData.departmentId, currentDepartment]);
+
+  const fetchClassrooms = async () => {
+    try {
+      setIsLoadingClassrooms(true);
+      const { data, error } = await supabase
+        .from('classrooms')
+        .select('*')
+        .eq('active', true)
+        .order('name');
+        
+      if (error) throw error;
+      
+      const formattedClassrooms: Classroom[] = (data || []).map(c => ({
+        id: c.id,
+        name: c.name,
+        description: c.description,
+        ageGroup: c.age_group,
+        capacity: c.capacity,
+        location: c.location,
+        active: c.active,
+        createdAt: new Date(c.created_at)
+      }));
+      
+      setClassrooms(formattedClassrooms);
+    } catch (error) {
+      console.error('Error fetching classrooms:', error);
+    } finally {
+      setIsLoadingClassrooms(false);
+    }
+  };
+
+  const getDepartmentName = (departmentId?: string): string => {
+    if (!departmentId) return '';
+    const dept = departments.find(d => d.id === departmentId);
+    return dept?.name || '';
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -82,6 +139,22 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
     }
   };
 
+  const handleDepartmentChange = (departmentId: string) => {
+    setFormData({
+      ...formData,
+      departmentId,
+      // Clear classroom if switching from EBD to another department
+      classroomId: getDepartmentName(departmentId) === 'Escola Bíblica' ? formData.classroomId : undefined,
+    });
+  };
+
+  const handleClassroomChange = (classroomId: string) => {
+    setFormData({
+      ...formData,
+      classroomId,
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
@@ -113,6 +186,11 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
     );
   }
 
+  // Determina quais campos mostrar com base no departamento selecionado
+  const isDepartmentLouvor = getDepartmentName(formData.departmentId) === 'Louvor';
+  const isDepartmentEBD = getDepartmentName(formData.departmentId) === 'Escola Bíblica';
+  const isDepartmentSom = getDepartmentName(formData.departmentId) === 'Sonoplastia';
+
   // Caso contrário, renderize o formulário normalmente
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -122,10 +200,56 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
           <CardDescription>
             {isEditing
               ? "Atualize os dados da escala"
-              : "Cadastre uma nova escala de ministração"}
+              : "Cadastre uma nova escala"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="departmentId">Departamento</Label>
+            <Select
+              value={formData.departmentId}
+              onValueChange={handleDepartmentChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione o departamento" />
+              </SelectTrigger>
+              <SelectContent>
+                {departments.map((dept) => (
+                  <SelectItem key={dept.id} value={dept.id}>
+                    {dept.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {isDepartmentEBD && (
+            <div className="space-y-2">
+              <Label htmlFor="classroomId">Sala de Aula</Label>
+              {isLoadingClassrooms ? (
+                <div className="flex justify-center py-2">
+                  <LoadingSpinner size="sm" />
+                </div>
+              ) : (
+                <Select
+                  value={formData.classroomId}
+                  onValueChange={handleClassroomChange}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione a sala de aula" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classrooms.map((classroom) => (
+                      <SelectItem key={classroom.id} value={classroom.id}>
+                        {classroom.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="date">Data</Label>
             <Popover>
@@ -176,7 +300,11 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
             />
           </div>
           <div className="space-y-2">
-            <Label>Membros</Label>
+            <Label>
+              {isDepartmentLouvor ? 'Membros' : 
+                isDepartmentEBD ? 'Professores' : 
+                isDepartmentSom ? 'Operadores' : 'Participantes'}
+            </Label>
             <div className="max-h-48 overflow-y-auto border rounded-md p-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {members.map((member) => (
@@ -199,30 +327,34 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
               </div>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label>Músicas</Label>
-            <div className="max-h-48 overflow-y-auto border rounded-md p-2">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {songs.map((song) => (
-                  <div key={song.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`song-${song.id}`}
-                      checked={(formData.songs || []).includes(song.id)}
-                      onCheckedChange={(checked) =>
-                        handleSongChange(song.id, Boolean(checked))
-                      }
-                    />
-                    <label
-                      htmlFor={`song-${song.id}`}
-                      className="text-sm font-medium leading-none"
-                    >
-                      {song.title}
-                    </label>
-                  </div>
-                ))}
+          
+          {isDepartmentLouvor && (
+            <div className="space-y-2">
+              <Label>Músicas</Label>
+              <div className="max-h-48 overflow-y-auto border rounded-md p-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {songs.map((song) => (
+                    <div key={song.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`song-${song.id}`}
+                        checked={(formData.songs || []).includes(song.id)}
+                        onCheckedChange={(checked) =>
+                          handleSongChange(song.id, Boolean(checked))
+                        }
+                      />
+                      <label
+                        htmlFor={`song-${song.id}`}
+                        className="text-sm font-medium leading-none"
+                      >
+                        {song.title}
+                      </label>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          )}
+          
           <div className="flex items-center space-x-2">
             <Checkbox
               id="isPublished"
@@ -235,7 +367,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
               htmlFor="isPublished"
               className="text-sm font-medium leading-none"
             >
-              Publicar Escala
+              {isDepartmentEBD ? 'Publicar Aula' : 'Publicar Escala'}
             </label>
           </div>
         </CardContent>

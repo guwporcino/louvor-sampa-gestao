@@ -72,6 +72,63 @@ export type Database = {
         }
         Relationships: []
       }
+      classrooms: {
+        Row: {
+          active: boolean | null
+          age_group: string | null
+          capacity: number | null
+          created_at: string | null
+          description: string | null
+          id: string
+          location: string | null
+          name: string
+        }
+        Insert: {
+          active?: boolean | null
+          age_group?: string | null
+          capacity?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          location?: string | null
+          name: string
+        }
+        Update: {
+          active?: boolean | null
+          age_group?: string | null
+          capacity?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+        }
+        Relationships: []
+      }
+      departments: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       member_categories: {
         Row: {
           category_id: string
@@ -194,27 +251,33 @@ export type Database = {
       }
       schedules: {
         Row: {
+          classroom_id: string | null
           created_at: string | null
           created_by: string | null
           date: string
+          department_id: string | null
           description: string | null
           id: string
           is_published: boolean | null
           title: string
         }
         Insert: {
+          classroom_id?: string | null
           created_at?: string | null
           created_by?: string | null
           date: string
+          department_id?: string | null
           description?: string | null
           id?: string
           is_published?: boolean | null
           title: string
         }
         Update: {
+          classroom_id?: string | null
           created_at?: string | null
           created_by?: string | null
           date?: string
+          department_id?: string | null
           description?: string | null
           id?: string
           is_published?: boolean | null
@@ -222,10 +285,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "schedules_classroom_id_fkey"
+            columns: ["classroom_id"]
+            isOneToOne: false
+            referencedRelation: "classrooms"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "schedules_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedules_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
             referencedColumns: ["id"]
           },
         ]
@@ -274,12 +351,54 @@ export type Database = {
           },
         ]
       }
+      user_departments: {
+        Row: {
+          created_at: string | null
+          department_id: string | null
+          id: string
+          is_admin: boolean | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          department_id?: string | null
+          id?: string
+          is_admin?: boolean | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          department_id?: string | null
+          id?: string
+          is_admin?: boolean | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_departments_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_departments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_department_access: {
+        Args: { user_uuid: string; dept_uuid: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

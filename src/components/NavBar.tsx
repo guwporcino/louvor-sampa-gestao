@@ -1,10 +1,14 @@
+
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
-import { FileText, Music, Calendar, User, FileMusic, LogOut } from "lucide-react";
+import { FileText, Music, Calendar, User, FileMusic, LogOut, BookOpen, Headphones, Settings } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
+import { useDepartment } from "../contexts/DepartmentContext";
+import DepartmentSelector from "./DepartmentSelector";
+
 const NavBar: React.FC = () => {
   const location = useLocation();
   const {
@@ -12,6 +16,8 @@ const NavBar: React.FC = () => {
     profile,
     signOut
   } = useAuth();
+  const { currentDepartment, isAdmin } = useDepartment();
+  
   const isActive = (path: string) => {
     return location.pathname === path;
   };
@@ -23,11 +29,75 @@ const NavBar: React.FC = () => {
     }
     return user?.email?.substring(0, 2).toUpperCase() || 'U';
   };
+  
+  // Get department-specific menu items based on current department
+  const getDepartmentMenuItems = () => {
+    if (!currentDepartment) return [];
+    
+    switch (currentDepartment.name.toLowerCase()) {
+      case 'louvor':
+        return [
+          {
+            path: "/membros",
+            icon: <User className="mr-2 h-5 w-5" />,
+            label: "Membros"
+          },
+          {
+            path: "/escalas",
+            icon: <Calendar className="mr-2 h-5 w-5" />,
+            label: "Escalas"
+          },
+          {
+            path: "/repertorio",
+            icon: <FileMusic className="mr-2 h-5 w-5" />,
+            label: "Repertório"
+          }
+        ];
+      case 'escola bíblica':
+        return [
+          {
+            path: "/professores",
+            icon: <User className="mr-2 h-5 w-5" />,
+            label: "Professores"
+          },
+          {
+            path: "/turmas",
+            icon: <BookOpen className="mr-2 h-5 w-5" />,
+            label: "Turmas"
+          },
+          {
+            path: "/escalas-ebd",
+            icon: <Calendar className="mr-2 h-5 w-5" />,
+            label: "Escalas"
+          }
+        ];
+      case 'sonoplastia':
+        return [
+          {
+            path: "/operadores",
+            icon: <User className="mr-2 h-5 w-5" />,
+            label: "Operadores"
+          },
+          {
+            path: "/escalas-som",
+            icon: <Calendar className="mr-2 h-5 w-5" />,
+            label: "Escalas"
+          }
+        ];
+      default:
+        return [];
+    }
+  };
+  
+  const menuItems = getDepartmentMenuItems();
+  
   return <>
       <Sidebar>
         <SidebarHeader className="px-4 py-6">
           <div className="flex items-center space-x-2">
-            <Music className="h-8 w-8 text-worship-gold" />
+            {currentDepartment?.name.toLowerCase() === 'louvor' && <Music className="h-8 w-8 text-worship-gold" />}
+            {currentDepartment?.name.toLowerCase() === 'escola bíblica' && <BookOpen className="h-8 w-8 text-worship-blue" />}
+            {currentDepartment?.name.toLowerCase() === 'sonoplastia' && <Headphones className="h-8 w-8 text-worship-purple" />}
             <div>
               <h1 className="text-lg font-bold leading-none text-white">IbrCaue</h1>
               <p className="text-xs text-gray-200">Gestão de Equipes</p>
@@ -50,6 +120,9 @@ const NavBar: React.FC = () => {
               </div>
             </div>
           </div>
+
+          <DepartmentSelector />
+          
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild className={isActive("/") ? "bg-sidebar-accent" : ""}>
@@ -59,30 +132,29 @@ const NavBar: React.FC = () => {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild className={isActive("/membros") ? "bg-sidebar-accent" : ""}>
-                <Link to="/membros" className="flex items-center">
-                  <User className="mr-2 h-5 w-5" />
-                  <span>Membros</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild className={isActive("/escalas") ? "bg-sidebar-accent" : ""}>
-                <Link to="/escalas" className="flex items-center">
-                  <Calendar className="mr-2 h-5 w-5" />
-                  <span>Escalas</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild className={isActive("/repertorio") ? "bg-sidebar-accent" : ""}>
-                <Link to="/repertorio" className="flex items-center">
-                  <FileMusic className="mr-2 h-5 w-5" />
-                  <span>Repertório</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            
+            {menuItems.map((item, index) => (
+              <SidebarMenuItem key={index}>
+                <SidebarMenuButton asChild className={isActive(item.path) ? "bg-sidebar-accent" : ""}>
+                  <Link to={item.path} className="flex items-center">
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+            
+            {isAdmin(currentDepartment?.id || '') && (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild className={isActive("/configuracoes") ? "bg-sidebar-accent" : ""}>
+                  <Link to="/configuracoes" className="flex items-center">
+                    <Settings className="mr-2 h-5 w-5" />
+                    <span>Configurações</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
+            
             <SidebarMenuItem>
               <SidebarMenuButton onClick={signOut} className="text-red-400 hover:text-red-300 hover:bg-red-900/20">
                 <div className="flex items-center">

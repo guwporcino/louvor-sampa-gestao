@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, FileText, Music, Users } from "lucide-react";
+import { ReactNode } from "react";
 
 interface StatsCardProps {
   title: string;
@@ -31,47 +31,77 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, description, 
 };
 
 interface DashboardStatsProps {
-  totalMembers: number;
-  upcomingSchedules: number;
-  totalSongs: number;
-  activeMembers: number;
+  title1?: string;
+  value1: number;
+  description1?: string;
+  icon1?: ReactNode;
+  
+  title2?: string;
+  value2: number;
+  description2?: string;
+  icon2?: ReactNode;
+  
+  title3?: string;
+  value3: number;
+  description3?: string;
+  icon3?: ReactNode;
+  
+  title4?: string;
+  value4: number;
+  description4?: string;
+  icon4?: ReactNode;
 }
 
 const DashboardStats: React.FC<DashboardStatsProps> = ({
-  totalMembers,
-  upcomingSchedules,
-  totalSongs,
-  activeMembers,
+  title1 = "Total de Membros",
+  value1,
+  description1 = "Membros cadastrados",
+  icon1,
+  
+  title2 = "Membros Ativos",
+  value2,
+  description2 = "Participando ativamente",
+  icon2,
+  
+  title3 = "Próximas Escalas",
+  value3,
+  description3 = "Escalas futuras",
+  icon3,
+  
+  title4 = "Músicas",
+  value4,
+  description4 = "No repertório",
+  icon4,
 }) => {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <StatsCard
-        title="Total de Membros"
-        value={totalMembers}
-        icon={<Users className="h-5 w-5" />}
-        description="Membros cadastrados"
-        emptyState={totalMembers === 0}
+        title={title1}
+        value={value1}
+        icon={icon1}
+        description={description1}
+        emptyState={value1 === 0}
       />
       <StatsCard
-        title="Membros Ativos"
-        value={activeMembers}
-        icon={<FileText className="h-5 w-5" />}
-        description="Participando ativamente"
-        emptyState={activeMembers === 0}
+        title={title2}
+        value={value2}
+        icon={icon2}
+        description={description2}
+        emptyState={value2 === 0}
       />
       <StatsCard
-        title="Próximas Escalas"
-        value={upcomingSchedules}
-        icon={<Calendar className="h-5 w-5" />}
-        description="Escalas futuras"
-        emptyState={upcomingSchedules === 0}
+        title={title3}
+        value={value3}
+        icon={icon3}
+        description={description3}
+        emptyState={value3 === 0}
       />
       <StatsCard
-        title="Músicas"
-        value={totalSongs}
-        icon={<Music className="h-5 w-5" />}
-        description="No repertório"
-        emptyState={totalSongs === 0}
+        title={title4}
+        value={value4}
+        icon={icon4}
+        description={description4}
+        emptyState={value4 === 0}
       />
     </div>
   );
