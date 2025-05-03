@@ -39,8 +39,13 @@ const ScheduleFormModal: React.FC<ScheduleFormModalProps> = ({
   };
 
   const handleSubmit = (formData: Partial<Schedule>) => {
+    // Garanta que temos o departmentId definido
+    if (!formData.departmentId) {
+      console.error("Department ID is required");
+      return;
+    }
+    
     onSubmit(formData);
-    onOpenChange(false);
   };
 
   const modalTitle = title || (schedule 
@@ -50,7 +55,10 @@ const ScheduleFormModal: React.FC<ScheduleFormModalProps> = ({
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[700px] p-0 overflow-y-auto max-h-[90vh]">
+        <DialogContent 
+          className="sm:max-w-[700px] p-0 overflow-y-auto max-h-[90vh]"
+          showFullScreenOnMobile={true}
+        >
           <DialogHeader className="p-6 pb-0">
             <DialogTitle>{modalTitle}</DialogTitle>
           </DialogHeader>
