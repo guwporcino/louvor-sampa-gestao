@@ -39,9 +39,21 @@ const ScheduleFormModal: React.FC<ScheduleFormModalProps> = ({
   };
 
   const handleSubmit = (formData: Partial<Schedule>) => {
-    // Garanta que temos o departmentId definido
+    // Validação de departamento
     if (!formData.departmentId) {
       console.error("Department ID is required");
+      return;
+    }
+    
+    // Para EBD, validar sala de aula
+    if (formData.departmentId && !formData.classroomId) {
+      console.error("Classroom ID is required for EBD schedules");
+      return;
+    }
+    
+    // Validar se tem membros selecionados
+    if (!formData.members || formData.members.length === 0) {
+      console.error("At least one member must be selected");
       return;
     }
     
