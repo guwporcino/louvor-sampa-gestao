@@ -176,10 +176,11 @@ const Teachers = () => {
           description: "Professor atualizado com sucesso"
         });
       } else {
-        // Create new teacher profile
+        // Create new teacher profile - Fix: Use a generated UUID for the new profile
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .insert({
+            id: crypto.randomUUID(), // Generate a UUID for the new profile
             name: formData.name,
             email: formData.email,
             phone: formData.phone || null,
@@ -385,7 +386,7 @@ const Teachers = () => {
               >
                 {isSubmitting ? (
                   <>
-                    <LoadingSpinner className="mr-2" /> Salvando...
+                    <LoadingSpinner /> <span className="ml-2">Salvando...</span>
                   </>
                 ) : (
                   <>
