@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -5,12 +6,11 @@ import { Plus, Headphones } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Schedule, Member, Song } from "../types";
+import { Schedule, Member } from "../types";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ScheduleList from "@/components/ScheduleList";
-import ScheduleForm from "@/components/ScheduleForm";
 import { useDepartment } from "@/contexts/DepartmentContext";
-import ScheduleActions from "@/components/ScheduleActions";
+import ScheduleFormModal from "@/components/ScheduleFormModal";
 
 const SoundSchedules = () => {
   const { id } = useParams();
@@ -22,29 +22,20 @@ const SoundSchedules = () => {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [operators, setOperators] = useState<Member[]>([]);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
-  const [view, setView] = useState<"list" | "form" | "detail">("list");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "edit" | "view">("create");
 
   useEffect(() => {
     console.log('SoundSchedules useEffect - ID:', id);
     
     if (id === "novo") {
-      console.log('Setting view to form for new schedule');
-      setView("form");
-      setSelectedSchedule(null);
-      
-      // Ensure operators are loaded for new form
-      if (operators.length === 0) {
-        fetchOperators();
-      }
-      
-      // Set loading to false since we don't need to fetch a specific schedule
-      setIsLoading(false);
+      console.log('Setting up modal for new schedule');
+      handleNewSchedule();
     } else if (id) {
-      console.log('Setting view to form/detail for existing schedule:', id);
+      console.log('Setting up modal for existing schedule:', id);
       fetchScheduleById(id);
     } else {
-      console.log('Setting view to list');
-      setView("list");
+      console.log('Loading schedule list');
       fetchSchedulesAndOperators();
     }
   }, [id, currentDepartment]);
@@ -219,7 +210,11 @@ const SoundSchedules = () => {
       };
 
       setSelectedSchedule(schedule);
-      setView("form"); // Set view to form after fetching schedule data
+      setModalMode("edit");
+      setModalOpen(true);
+      
+      // Redirecionar para a URL base para evitar problemas com parâmetros
+      navigate("/escalas-som", { replace: true });
     } catch (error) {
       console.error("Erro ao buscar escala:", error);
       toast({
@@ -324,7 +319,13 @@ const SoundSchedules = () => {
         });
       }
 
-      navigate("/escalas-som");
+      // Recarregar a lista de escalas
+      fetchSchedules();
+      
+      // Fechar o modal
+      setModalOpen(false);
+      setSelectedSchedule(null);
+      
     } catch (error: any) {
       console.error("Erro ao salvar escala:", error);
       toast({
@@ -337,25 +338,39 @@ const SoundSchedules = () => {
     }
   };
 
+  const handleNewSchedule = () => {
+    // Preparar o formulário para uma nova escala
+    setSelectedSchedule(null);
+    setModalMode("create");
+    setModalOpen(true);
+    
+    // Garantir que os operadores estão carregados
+    if (operators.length === 0) {
+      fetchOperators();
+    }
+    
+    // Redirecionar para a URL base
+    navigate("/escalas-som", { replace: true });
+  };
+
   const handleViewSchedule = (schedule: Schedule) => {
-    navigate(`/escalas-som/${schedule.id}`);
     setSelectedSchedule(schedule);
-    setView("detail");
+    setModalMode("view");
+    setModalOpen(true);
   };
 
   const handleEditSchedule = (schedule: Schedule) => {
-    navigate(`/escalas-som/${schedule.id}`);
     setSelectedSchedule(schedule);
-    setView("form");
+    setModalMode("edit");
+    setModalOpen(true);
   };
 
-  const handleCancel = () => {
-    navigate("/escalas-som");
+  const handleCloseModal = () => {
+    setModalOpen(false);
     setSelectedSchedule(null);
-    setView("list");
   };
 
-  // New functions for replication and random generation
+  // Functions for replication and random generation
   const handleReplicateSchedule = async (newSchedule: Omit<Schedule, 'id' | 'createdAt'>) => {
     try {
       setIsSubmitting(true);
@@ -394,7 +409,13 @@ const SoundSchedules = () => {
         description: "Escala replicada com sucesso",
       });
       
-      navigate("/escalas-som");
+      // Recarregar a lista de escalas
+      fetchSchedules();
+      
+      // Fechar o modal
+      setModalOpen(false);
+      setSelectedSchedule(null);
+      
     } catch (error: any) {
       console.error("Erro ao replicar escala:", error);
       toast({
@@ -445,7 +466,13 @@ const SoundSchedules = () => {
         description: "Escala aleatória gerada com sucesso",
       });
       
-      navigate("/escalas-som");
+      // Recarregar a lista de escalas
+      fetchSchedules();
+      
+      // Fechar o modal
+      setModalOpen(false);
+      setSelectedSchedule(null);
+      
     } catch (error: any) {
       console.error("Erro ao gerar escala aleatória:", error);
       toast({
@@ -458,65 +485,10 @@ const SoundSchedules = () => {
     }
   };
 
-  console.log('SoundSchedules rendering with:', {
-    isLoading,
-    view,
-    id,
-    operatorsCount: operators.length,
-  });
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <LoadingSpinner />
-      </div>
-    );
-  }
-
-  if (view === "form") {
-    console.log('Rendering form with selectedSchedule:', !!selectedSchedule);
-    console.log('Operators count:', operators.length);
-    
-    return (
-      <ScheduleForm
-        schedule={selectedSchedule || undefined}
-        members={operators}
-        songs={[]}
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-        isSubmitting={isSubmitting}
-        viewMode={false}
-      />
-    );
-  }
-
-  if (view === "detail" && selectedSchedule) {
-    return (
-      <div className="animate-fade-in">
-        <Card className="w-full max-w-3xl mx-auto">
-          <CardContent className="pt-6">
-            <ScheduleActions
-              schedule={selectedSchedule}
-              members={operators}
-              songs={[]}
-              onReplicateSchedule={handleReplicateSchedule}
-              onGenerateSchedule={handleGenerateSchedule}
-            />
-            
-            <div className="flex justify-end mt-6">
-              <Button 
-                variant="outline" 
-                className="mr-2"
-                onClick={handleCancel}
-              >
-                Voltar
-              </Button>
-              <Button onClick={() => handleEditSchedule(selectedSchedule)}>
-                Editar
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     );
   }
@@ -537,7 +509,7 @@ const SoundSchedules = () => {
           </p>
         </div>
         <Button
-          onClick={() => navigate("/escalas-som/novo")}
+          onClick={handleNewSchedule}
           className="bg-worship-purple hover:bg-worship-purple/80"
         >
           <Plus className="mr-2 h-4 w-4" /> Nova Escala
@@ -553,7 +525,7 @@ const SoundSchedules = () => {
               Crie sua primeira escala para operadores de som e mídia
             </p>
             <Button
-              onClick={() => navigate("/escalas-som/novo")}
+              onClick={handleNewSchedule}
               className="bg-worship-purple hover:bg-worship-purple/80"
             >
               <Plus className="mr-2 h-4 w-4" /> Nova Escala
@@ -567,6 +539,25 @@ const SoundSchedules = () => {
           onEdit={handleEditSchedule}
         />
       )}
+
+      <ScheduleFormModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        schedule={selectedSchedule || undefined}
+        members={operators}
+        songs={[]}
+        onSubmit={handleSubmit}
+        onCancel={handleCloseModal}
+        isSubmitting={isSubmitting}
+        viewMode={modalMode === "view"}
+        title={
+          modalMode === "create" 
+            ? "Nova Escala de Sonoplastia" 
+            : modalMode === "edit"
+            ? "Editar Escala de Sonoplastia"
+            : "Visualizar Escala de Sonoplastia"
+        }
+      />
     </div>
   );
 };

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -5,13 +6,11 @@ import { Plus, BookOpen } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Schedule, Member, Song } from "../types";
+import { Schedule, Member, Classroom } from "../types";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ScheduleList from "@/components/ScheduleList";
-import ScheduleForm from "@/components/ScheduleForm";
 import { useDepartment } from "@/contexts/DepartmentContext";
-import { format } from "date-fns";
-import ScheduleActions from "@/components/ScheduleActions";
+import ScheduleFormModal from "@/components/ScheduleFormModal";
 
 const EBDSchedules = () => {
   const { id } = useParams();
@@ -22,30 +21,22 @@ const EBDSchedules = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [teachers, setTeachers] = useState<Member[]>([]);
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
-  const [view, setView] = useState<"list" | "form" | "detail">("list");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "edit" | "view">("create");
 
   useEffect(() => {
     console.log('EBDSchedules useEffect - ID:', id);
     
     if (id === "novo") {
-      console.log('Setting view to form for new schedule');
-      setView("form");
-      setSelectedSchedule(null);
-      
-      // Ensure teachers are loaded for new form
-      if (teachers.length === 0) {
-        fetchTeachers();
-      }
-      
-      // Set loading to false since we don't need to fetch a specific schedule
-      setIsLoading(false);
+      console.log('Setting up modal for new schedule');
+      handleNewSchedule();
     } else if (id) {
-      console.log('Setting view to form/detail for existing schedule:', id);
+      console.log('Setting up modal for existing schedule:', id);
       fetchScheduleById(id);
     } else {
-      console.log('Setting view to list');
-      setView("list");
+      console.log('Loading schedule list');
       fetchSchedulesAndTeachers();
     }
   }, [id, currentDepartment]);
@@ -53,11 +44,43 @@ const EBDSchedules = () => {
   const fetchSchedulesAndTeachers = async () => {
     try {
       setIsLoading(true);
-      await Promise.all([fetchSchedules(), fetchTeachers()]);
+      await Promise.all([fetchSchedules(), fetchTeachers(), fetchClassrooms()]);
     } catch (error) {
       console.error("Erro ao buscar dados:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchClassrooms = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('classrooms')
+        .select('*')
+        .eq('active', true)
+        .order('name');
+        
+      if (error) throw error;
+      
+      const formattedClassrooms: Classroom[] = (data || []).map(c => ({
+        id: c.id,
+        name: c.name,
+        description: c.description,
+        ageGroup: c.age_group,
+        capacity: c.capacity,
+        location: c.location,
+        active: c.active,
+        createdAt: new Date(c.created_at)
+      }));
+      
+      setClassrooms(formattedClassrooms);
+    } catch (error) {
+      console.error('Error fetching classrooms:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar as salas de aula",
+        variant: "destructive",
+      });
     }
   };
 
@@ -184,7 +207,7 @@ const EBDSchedules = () => {
   const fetchScheduleById = async (scheduleId: string) => {
     try {
       setIsLoading(true);
-      await fetchTeachers(); // Carrega os professores
+      await Promise.all([fetchTeachers(), fetchClassrooms()]); // Carrega os professores e salas
 
       const { data, error } = await supabase
         .from("schedules")
@@ -225,7 +248,11 @@ const EBDSchedules = () => {
       };
 
       setSelectedSchedule(schedule);
-      setView("form"); // Set view to form after fetching schedule data
+      setModalMode("edit");
+      setModalOpen(true);
+      
+      // Redirecionar para a URL base
+      navigate("/escalas-ebd", { replace: true });
     } catch (error) {
       console.error("Erro ao buscar escala:", error);
       toast({
@@ -332,7 +359,13 @@ const EBDSchedules = () => {
         });
       }
 
-      navigate("/escalas-ebd");
+      // Recarregar a lista de escalas
+      fetchSchedules();
+      
+      // Fechar o modal
+      setModalOpen(false);
+      setSelectedSchedule(null);
+      
     } catch (error: any) {
       console.error("Erro ao salvar escala:", error);
       toast({
@@ -345,25 +378,39 @@ const EBDSchedules = () => {
     }
   };
 
+  const handleNewSchedule = () => {
+    // Preparar o formulário para uma nova escala
+    setSelectedSchedule(null);
+    setModalMode("create");
+    setModalOpen(true);
+    
+    // Garantir que os dados necessários estão carregados
+    if (teachers.length === 0 || classrooms.length === 0) {
+      Promise.all([fetchTeachers(), fetchClassrooms()]);
+    }
+    
+    // Redirecionar para a URL base
+    navigate("/escalas-ebd", { replace: true });
+  };
+
   const handleViewSchedule = (schedule: Schedule) => {
-    navigate(`/escalas-ebd/${schedule.id}`);
     setSelectedSchedule(schedule);
-    setView("detail");
+    setModalMode("view");
+    setModalOpen(true);
   };
 
   const handleEditSchedule = (schedule: Schedule) => {
-    navigate(`/escalas-ebd/${schedule.id}`);
     setSelectedSchedule(schedule);
-    setView("form");
+    setModalMode("edit");
+    setModalOpen(true);
   };
 
-  const handleCancel = () => {
-    navigate("/escalas-ebd");
+  const handleCloseModal = () => {
+    setModalOpen(false);
     setSelectedSchedule(null);
-    setView("list");
   };
 
-  // New functions for replication and random generation
+  // Functions for replication and random generation
   const handleReplicateSchedule = async (newSchedule: Omit<Schedule, 'id' | 'createdAt'>) => {
     try {
       setIsSubmitting(true);
@@ -403,7 +450,13 @@ const EBDSchedules = () => {
         description: "Escala replicada com sucesso",
       });
       
-      navigate("/escalas-ebd");
+      // Recarregar a lista de escalas
+      fetchSchedules();
+      
+      // Fechar o modal
+      setModalOpen(false);
+      setSelectedSchedule(null);
+      
     } catch (error: any) {
       console.error("Erro ao replicar escala:", error);
       toast({
@@ -455,7 +508,13 @@ const EBDSchedules = () => {
         description: "Escala aleatória gerada com sucesso",
       });
       
-      navigate("/escalas-ebd");
+      // Recarregar a lista de escalas
+      fetchSchedules();
+      
+      // Fechar o modal
+      setModalOpen(false);
+      setSelectedSchedule(null);
+      
     } catch (error: any) {
       console.error("Erro ao gerar escala aleatória:", error);
       toast({
@@ -468,65 +527,10 @@ const EBDSchedules = () => {
     }
   };
 
-  console.log('EBDSchedules rendering with:', {
-    isLoading,
-    view,
-    id,
-    teachersCount: teachers.length,
-  });
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <LoadingSpinner />
-      </div>
-    );
-  }
-
-  if (view === "form") {
-    console.log('Rendering form with selectedSchedule:', !!selectedSchedule);
-    console.log('Teachers count:', teachers.length);
-    
-    return (
-      <ScheduleForm
-        schedule={selectedSchedule || undefined}
-        members={teachers}
-        songs={[]}
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-        isSubmitting={isSubmitting}
-        viewMode={false}
-      />
-    );
-  }
-
-  if (view === "detail" && selectedSchedule) {
-    return (
-      <div className="animate-fade-in">
-        <Card className="w-full max-w-3xl mx-auto">
-          <CardContent className="pt-6">
-            <ScheduleActions
-              schedule={selectedSchedule}
-              members={teachers}
-              songs={[]}
-              onReplicateSchedule={handleReplicateSchedule}
-              onGenerateSchedule={handleGenerateSchedule}
-            />
-            
-            <div className="flex justify-end mt-6">
-              <Button 
-                variant="outline" 
-                className="mr-2"
-                onClick={handleCancel}
-              >
-                Voltar
-              </Button>
-              <Button onClick={() => handleEditSchedule(selectedSchedule)}>
-                Editar
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     );
   }
@@ -547,7 +551,7 @@ const EBDSchedules = () => {
           </p>
         </div>
         <Button
-          onClick={() => navigate("/escalas-ebd/novo")}
+          onClick={handleNewSchedule}
           className="bg-worship-blue hover:bg-worship-blue/80"
         >
           <Plus className="mr-2 h-4 w-4" /> Nova Escala
@@ -563,7 +567,7 @@ const EBDSchedules = () => {
               Crie sua primeira escala para professores da Escola Bíblica
             </p>
             <Button
-              onClick={() => navigate("/escalas-ebd/novo")}
+              onClick={handleNewSchedule}
               className="bg-worship-blue hover:bg-worship-blue/80"
             >
               <Plus className="mr-2 h-4 w-4" /> Nova Escala
@@ -577,6 +581,25 @@ const EBDSchedules = () => {
           onEdit={handleEditSchedule}
         />
       )}
+
+      <ScheduleFormModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        schedule={selectedSchedule || undefined}
+        members={teachers}
+        songs={[]}
+        onSubmit={handleSubmit}
+        onCancel={handleCloseModal}
+        isSubmitting={isSubmitting}
+        viewMode={modalMode === "view"}
+        title={
+          modalMode === "create" 
+            ? "Nova Escala de Professores" 
+            : modalMode === "edit"
+            ? "Editar Escala de Professores"
+            : "Visualizar Escala de Professores"
+        }
+      />
     </div>
   );
 };

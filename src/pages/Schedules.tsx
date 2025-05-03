@@ -8,9 +8,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { Schedule, Member, Song } from "../types";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ScheduleList from "../components/ScheduleList";
-import ScheduleForm from "../components/ScheduleForm";
 import { useDepartment } from "@/contexts/DepartmentContext";
 import { Card, CardContent } from "@/components/ui/card";
+import ScheduleFormModal from "@/components/ScheduleFormModal";
 
 const Schedules = () => {
   const { id } = useParams();
@@ -23,25 +23,20 @@ const Schedules = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [songs, setSongs] = useState<Song[]>([]);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
-  const [view, setView] = useState<"list" | "form" | "detail">("list");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "edit" | "view">("create");
 
   useEffect(() => {
     console.log('Schedules useEffect - ID:', id);
     
     if (id === "novo") {
-      console.log('Setting view to form for new schedule');
-      setView("form");
-      setSelectedSchedule(null);
-      
-      // Ensure data is loaded for new form
-      fetchMembersAndSongs();
-      setIsLoading(false);
+      console.log('Setting up modal for new schedule');
+      handleNewSchedule();
     } else if (id) {
-      console.log('Setting view to form/detail for existing schedule:', id);
+      console.log('Setting up modal for existing schedule:', id);
       fetchScheduleById(id);
     } else {
-      console.log('Setting view to list');
-      setView("list");
+      console.log('Loading schedule list');
       fetchSchedulesAndData();
     }
   }, [id, currentDepartment]);
@@ -271,7 +266,12 @@ const Schedules = () => {
       };
 
       setSelectedSchedule(schedule);
-      setView("form"); // Set view to form after fetching schedule data
+      setModalMode("edit");
+      setModalOpen(true);
+      
+      // Redirecionamos para a página principal para evitar problemas com os parâmetros da URL
+      // mas mantemos o modal aberto
+      navigate("/escalas", { replace: true });
     } catch (error) {
       console.error("Erro ao buscar escala:", error);
       toast({
@@ -412,7 +412,13 @@ const Schedules = () => {
         });
       }
 
-      navigate("/escalas");
+      // Recarregar a lista de escalas
+      fetchSchedules();
+      
+      // Fechar o modal
+      setModalOpen(false);
+      setSelectedSchedule(null);
+      
     } catch (error: any) {
       console.error("Erro ao salvar escala:", error);
       toast({
@@ -425,27 +431,42 @@ const Schedules = () => {
     }
   };
 
+  const handleNewSchedule = () => {
+    // Preparar o formulário para uma nova escala
+    setSelectedSchedule(null);
+    setModalMode("create");
+    setModalOpen(true);
+    
+    // Garantir que os dados necessários estão carregados
+    if (members.length === 0 || songs.length === 0) {
+      fetchMembersAndSongs();
+    }
+    
+    // Redirecionar para a URL base sem parâmetros
+    navigate("/escalas", { replace: true });
+  };
+
   const handleViewSchedule = (schedule: Schedule) => {
-    navigate(`/escalas/${schedule.id}`);
     setSelectedSchedule(schedule);
-    setView("detail");
+    setModalMode("view");
+    setModalOpen(true);
   };
 
   const handleEditSchedule = (schedule: Schedule) => {
-    navigate(`/escalas/${schedule.id}`);
     setSelectedSchedule(schedule);
-    setView("form");
+    setModalMode("edit");
+    setModalOpen(true);
   };
 
-  const handleCancel = () => {
-    navigate("/escalas");
+  const handleCloseModal = () => {
+    setModalOpen(false);
     setSelectedSchedule(null);
-    setView("list");
   };
 
   console.log('Schedules rendering with:', {
     isLoading,
-    view,
+    modalMode,
+    modalOpen,
     id,
     membersCount: members.length,
     songsCount: songs.length
@@ -456,24 +477,6 @@ const Schedules = () => {
       <div className="flex justify-center items-center h-64">
         <LoadingSpinner />
       </div>
-    );
-  }
-
-  if (view === "form") {
-    console.log('Rendering form with selectedSchedule:', !!selectedSchedule);
-    console.log('Members count:', members.length);
-    console.log('Songs count:', songs.length);
-    
-    return (
-      <ScheduleForm
-        schedule={selectedSchedule || undefined}
-        members={members}
-        songs={songs}
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-        isSubmitting={isSubmitting}
-        viewMode={false}
-      />
     );
   }
 
@@ -492,9 +495,7 @@ const Schedules = () => {
             {schedules.length === 1 ? "" : "s"}
           </p>
         </div>
-        <Button
-          onClick={() => navigate("/escalas/novo")}
-        >
+        <Button onClick={handleNewSchedule}>
           <Plus className="mr-2 h-4 w-4" /> Nova Escala
         </Button>
       </div>
@@ -507,9 +508,7 @@ const Schedules = () => {
             <p className="text-gray-500 mb-4 max-w-md">
               Crie sua primeira escala para o ministério de louvor
             </p>
-            <Button
-              onClick={() => navigate("/escalas/novo")}
-            >
+            <Button onClick={handleNewSchedule}>
               <Plus className="mr-2 h-4 w-4" /> Nova Escala
             </Button>
           </CardContent>
@@ -521,6 +520,25 @@ const Schedules = () => {
           onEdit={handleEditSchedule}
         />
       )}
+
+      <ScheduleFormModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        schedule={selectedSchedule || undefined}
+        members={members}
+        songs={songs}
+        onSubmit={handleSubmit}
+        onCancel={handleCloseModal}
+        isSubmitting={isSubmitting}
+        viewMode={modalMode === "view"}
+        title={
+          modalMode === "create" 
+            ? "Nova Escala" 
+            : modalMode === "edit"
+            ? "Editar Escala"
+            : "Visualizar Escala"
+        }
+      />
     </div>
   );
 };
