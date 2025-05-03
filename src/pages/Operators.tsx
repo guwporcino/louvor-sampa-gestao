@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -175,10 +176,14 @@ const Operators = () => {
           description: "Operador atualizado com sucesso"
         });
       } else {
-        // Criar o perfil diretamente
+        // Generate a UUID for the new profile
+        const newProfileId = crypto.randomUUID();
+        
+        // Create a new profile with the generated ID
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .insert({
+            id: newProfileId,
             name: formData.name,
             email: formData.email,
             phone: formData.phone || null,
@@ -195,7 +200,7 @@ const Operators = () => {
           throw new Error("Falha ao criar perfil");
         }
         
-        // Associar ao departamento Sonoplastia
+        // Associate with Sonoplastia department
         const { error: deptError } = await supabase
           .from('user_departments')
           .insert({

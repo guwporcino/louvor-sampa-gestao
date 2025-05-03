@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -178,10 +179,14 @@ const Teachers = () => {
           description: "Professor atualizado com sucesso"
         });
       } else {
-        // Primeiro, criar o usuário diretamente na tabela profiles
+        // Generate a UUID for the new profile
+        const newProfileId = crypto.randomUUID();
+        
+        // Criar o perfil com o UUID gerado
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .insert({
+            id: newProfileId,
             name: formData.name,
             email: formData.email,
             phone: formData.phone || null,
