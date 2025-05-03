@@ -56,7 +56,10 @@ const MembersList: React.FC<MembersListProps> = ({ members, categories, onEdit }
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={member.active ? "success" : "destructive"}>
+                  <Badge 
+                    variant={member.active ? "secondary" : "destructive"}
+                    className={member.active ? "bg-green-600 text-white" : ""}
+                  >
                     {member.active ? "Ativo" : "Inativo"}
                   </Badge>
                 </TableCell>

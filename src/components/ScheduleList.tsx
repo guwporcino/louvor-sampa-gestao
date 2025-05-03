@@ -50,7 +50,10 @@ const ScheduleList: React.FC<ScheduleListProps> = ({ schedules, onView, onEdit }
                 <TableCell>{schedule.title}</TableCell>
                 <TableCell>{schedule.description}</TableCell>
                 <TableCell>
-                  <Badge variant={schedule.isPublished ? "success" : "secondary"}>
+                  <Badge 
+                    variant={schedule.isPublished ? "secondary" : "secondary"}
+                    className={schedule.isPublished ? "bg-green-600 text-white" : ""}
+                  >
                     {schedule.isPublished ? "Publicada" : "Rascunho"}
                   </Badge>
                 </TableCell>
