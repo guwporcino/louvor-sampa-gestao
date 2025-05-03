@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Schedule, Member, Song } from "../types";
 import { ptBR } from "date-fns/locale";
+import ScheduleActions from "./ScheduleActions";
 
 interface ScheduleFormProps {
   schedule?: Schedule;
@@ -21,6 +22,7 @@ interface ScheduleFormProps {
   onSubmit: (schedule: Partial<Schedule>) => void;
   onCancel: () => void;
   isSubmitting?: boolean;
+  viewMode?: boolean;
 }
 
 const ScheduleForm: React.FC<ScheduleFormProps> = ({
@@ -30,8 +32,11 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
   onSubmit,
   onCancel,
   isSubmitting = false,
+  viewMode = false,
 }) => {
-  const isEditing = !!schedule;
+  const isEditing = !!schedule && !viewMode;
+  const isViewing = viewMode && !!schedule;
+
   const [formData, setFormData] = useState<Partial<Schedule>>(
     schedule || {
       title: "",
@@ -82,6 +87,33 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
     onSubmit(formData);
   };
 
+  // Se estiver em modo de visualização, renderize o componente de ações
+  if (isViewing && schedule) {
+    return (
+      <Card className="w-full max-w-3xl mx-auto">
+        <CardHeader>
+          <CardTitle>Visualizar Escala</CardTitle>
+          <CardDescription>
+            Detalhes da escala de ministração
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ScheduleActions 
+            schedule={schedule}
+            members={members}
+            songs={songs}
+          />
+        </CardContent>
+        <CardFooter className="flex justify-end">
+          <Button onClick={onCancel}>
+            Voltar
+          </Button>
+        </CardFooter>
+      </Card>
+    );
+  }
+
+  // Caso contrário, renderize o formulário normalmente
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <form onSubmit={handleSubmit}>

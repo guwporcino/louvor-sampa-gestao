@@ -10,27 +10,31 @@ import { Schedule } from "../types";
 const Schedules = () => {
   const [schedules, setSchedules] = useState(mockSchedules);
   const [showForm, setShowForm] = useState(false);
+  const [viewMode, setViewMode] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const handleCreateNew = () => {
     setEditingSchedule(undefined);
+    setViewMode(false);
     setShowForm(true);
   };
   
   const handleEdit = (schedule: Schedule) => {
     setEditingSchedule(schedule);
+    setViewMode(false);
     setShowForm(true);
   };
   
   const handleView = (schedule: Schedule) => {
-    // Por enquanto, apenas abrirá o formulário em modo de visualização
     setEditingSchedule(schedule);
+    setViewMode(true);
     setShowForm(true);
   };
   
   const handleCancel = () => {
     setShowForm(false);
+    setViewMode(false);
     setEditingSchedule(undefined);
   };
   
@@ -61,6 +65,7 @@ const Schedules = () => {
       
       setIsSubmitting(false);
       setShowForm(false);
+      setViewMode(false);
       setEditingSchedule(undefined);
     }, 500);
   };
@@ -71,7 +76,7 @@ const Schedules = () => {
         <div>
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-3xl font-bold">
-              {editingSchedule ? "Editar Escala" : "Nova Escala"}
+              {viewMode ? "Visualizar Escala" : (editingSchedule ? "Editar Escala" : "Nova Escala")}
             </h1>
           </div>
           <ScheduleForm 
@@ -81,6 +86,7 @@ const Schedules = () => {
             onSubmit={handleSubmit}
             onCancel={handleCancel}
             isSubmitting={isSubmitting}
+            viewMode={viewMode}
           />
         </div>
       ) : (
