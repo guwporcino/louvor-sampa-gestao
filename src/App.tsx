@@ -75,7 +75,7 @@ const App = () => {
                     {/* Settings */}
                     <Route path="configuracoes" element={<Settings />} />
                     
-                    {/* Specific department schedule redirects */}
+                    {/* Louvor schedules redirect */}
                     <Route path="escalas-louvor" element={<Navigate to="/escalas" replace />} />
                   </Route>
                 </Route>

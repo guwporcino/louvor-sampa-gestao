@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -179,42 +178,36 @@ const Teachers = () => {
           description: "Professor atualizado com sucesso"
         });
       } else {
-        // First create the user in the auth service
-        const { error: signUpError, data: authData } = await supabase.auth.admin.createUser({
-          email: formData.email,
-          email_confirm: true,
-          user_metadata: { name: formData.name }
-        });
+        // Primeiro, criar o usuário diretamente na tabela profiles
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone || null,
+            active: formData.active
+          })
+          .select('id')
+          .single();
 
-        if (signUpError) {
-          throw new Error(`Erro ao criar usuário: ${signUpError.message}`);
+        if (profileError) {
+          throw new Error(`Erro ao criar perfil: ${profileError.message}`);
         }
         
-        if (!authData?.user) {
-          throw new Error("Falha ao criar usuário");
+        if (!profileData) {
+          throw new Error("Falha ao criar perfil");
         }
         
-        // The profile should be created automatically through the trigger
-        // Now we just need to associate with Escola Bíblica department
+        // Associar ao departamento Escola Bíblica
         const { error: deptError } = await supabase
           .from('user_departments')
           .insert({
-            user_id: authData.user.id,
+            user_id: profileData.id,
             department_id: schoolDepartment.data.id,
             is_admin: false
           });
 
         if (deptError) throw deptError;
-        
-        // Update phone number if provided
-        if (formData.phone) {
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ phone: formData.phone })
-            .eq('id', authData.user.id);
-            
-          if (updateError) throw updateError;
-        }
         
         toast({
           title: "Sucesso",
