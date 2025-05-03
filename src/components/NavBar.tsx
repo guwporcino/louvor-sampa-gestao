@@ -30,7 +30,7 @@ const NavBar: React.FC = () => {
             <Music className="h-8 w-8 text-worship-gold" />
             <div>
               <h1 className="text-lg font-bold leading-none text-white">IbrCaue</h1>
-              <p className="text-xs text-gray-200">Gestão de Equipe</p>
+              <p className="text-xs text-gray-200">Gestão de Equipes</p>
             </div>
           </div>
         </SidebarHeader>
