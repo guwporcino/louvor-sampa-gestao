@@ -1,10 +1,10 @@
 
 import React, { useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { FilePdf, Share } from "lucide-react";
+import { FileText, Share } from "lucide-react";
 import { Schedule, Member, Classroom } from "@/types";
 import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf-html2canvas';
+import jsPDF from 'jspdf';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/components/ui/use-toast';
@@ -48,19 +48,21 @@ const ScheduleExport: React.FC<ScheduleExportProps> = ({
       container.classList.remove('pdf-mode');
       
       // Criar PDF
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
-
+      const pdf = new jsPDF();
+      
+      // Calcular as dimensões para adicionar a imagem
+      const imgWidth = 210; // A4 width in mm (portrait)
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
       // Adicionar a imagem do canvas ao PDF
-      await pdf.html2canvas(canvas, {
-        imageType: 'image/png',
-        width: 210, // A4 width in mm
-        height: 0, // Height auto
-        margin: [10, 10, 10, 10], // top, right, bottom, left
-      });
+      pdf.addImage(
+        canvas.toDataURL('image/png'), 
+        'PNG', 
+        0, 
+        0, 
+        imgWidth, 
+        imgHeight
+      );
 
       // Salvar PDF com nome baseado no título da escala
       const filename = `${schedule.title.replace(/\s+/g, '_')}_${format(schedule.date, 'dd-MM-yyyy')}.pdf`;
@@ -88,7 +90,7 @@ const ScheduleExport: React.FC<ScheduleExportProps> = ({
           className="flex items-center gap-2"
           variant="outline"
         >
-          <FilePdf className="h-4 w-4" />
+          <FileText className="h-4 w-4" />
           <span>Gerar PDF</span>
         </Button>
       </div>
