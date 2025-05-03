@@ -51,7 +51,8 @@ const Teachers = () => {
     name: "",
     email: "",
     phone: "",
-    active: true
+    active: true,
+    password: "senha12345" // Default password for new users
   });
 
   useEffect(() => {
@@ -126,7 +127,8 @@ const Teachers = () => {
       name: "",
       email: "",
       phone: "",
-      active: true
+      active: true,
+      password: "senha12345" // Default password for new users
     });
     setIsDialogOpen(true);
   };
@@ -138,7 +140,8 @@ const Teachers = () => {
       name: teacher.name,
       email: teacher.email,
       phone: teacher.phone || "",
-      active: teacher.active
+      active: teacher.active,
+      password: "senha12345" // Not used for editing
     });
     setIsDialogOpen(true);
   };
@@ -179,35 +182,40 @@ const Teachers = () => {
           description: "Professor atualizado com sucesso"
         });
       } else {
-        // Generate a UUID for the new profile
-        const newProfileId = crypto.randomUUID();
+        // Create user using Supabase Auth
+        const { data: userData, error: authError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              name: formData.name,
+              phone: formData.phone || null
+            }
+          }
+        });
         
-        // Criar o perfil com o UUID gerado
-        const { data: profileData, error: profileError } = await supabase
+        if (authError) {
+          throw new Error(`Erro ao criar usuário: ${authError.message}`);
+        }
+        
+        if (!userData.user) {
+          throw new Error("Falha ao criar usuário");
+        }
+        
+        // Update additional profile info if needed
+        await supabase
           .from('profiles')
-          .insert({
-            id: newProfileId,
-            name: formData.name,
-            email: formData.email,
+          .update({
             phone: formData.phone || null,
             active: formData.active
           })
-          .select('id')
-          .single();
-
-        if (profileError) {
-          throw new Error(`Erro ao criar perfil: ${profileError.message}`);
-        }
-        
-        if (!profileData) {
-          throw new Error("Falha ao criar perfil");
-        }
+          .eq('id', userData.user.id);
         
         // Associar ao departamento Escola Bíblica
         const { error: deptError } = await supabase
           .from('user_departments')
           .insert({
-            user_id: profileData.id,
+            user_id: userData.user.id,
             department_id: schoolDepartment.data.id,
             is_admin: false
           });
@@ -216,7 +224,7 @@ const Teachers = () => {
         
         toast({
           title: "Sucesso",
-          description: "Novo professor cadastrado com sucesso"
+          description: "Novo professor cadastrado com sucesso. Uma confirmação pode ser necessária pelo email."
         });
       }
 
@@ -370,6 +378,20 @@ const Teachers = () => {
                   placeholder="(00) 00000-0000"
                 />
               </div>
+              {!editingTeacher && (
+                <div className="grid gap-2">
+                  <Label htmlFor="password">Senha</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    required
+                  />
+                  <p className="text-xs text-gray-500">Esta é a senha inicial do usuário.</p>
+                </div>
+              )}
               <div className="flex items-center space-x-2">
                 <input
                   id="active"

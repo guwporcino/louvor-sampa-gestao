@@ -28,6 +28,7 @@ export const DepartmentProvider: React.FC<{ children: ReactNode }> = ({ children
 
   const fetchDepartments = async () => {
     try {
+      console.log("DepartmentContext: Fetching departments for user:", user?.id);
       setIsLoading(true);
       
       // Fetch all departments
@@ -50,6 +51,7 @@ export const DepartmentProvider: React.FC<{ children: ReactNode }> = ({ children
         createdAt: new Date(dept.created_at)
       }));
       
+      console.log("DepartmentContext: Fetched departments:", fetchedDepartments);
       setDepartments(fetchedDepartments);
       
       if (user) {
@@ -74,6 +76,8 @@ export const DepartmentProvider: React.FC<{ children: ReactNode }> = ({ children
           throw userDeptError;
         }
         
+        console.log("DepartmentContext: Fetched user departments:", userDeptData);
+        
         // Map to our UserDepartment type
         const fetchedUserDepartments: UserDepartment[] = userDeptData.map((ud) => ({
           id: ud.id,
@@ -94,12 +98,16 @@ export const DepartmentProvider: React.FC<{ children: ReactNode }> = ({ children
         if (fetchedUserDepartments.length > 0 && !currentDepartment) {
           const deptId = fetchedUserDepartments[0].departmentId;
           const dept = fetchedDepartments.find(d => d.id === deptId);
+          
+          console.log("DepartmentContext: Setting initial department", dept);
+          
           if (dept) {
             setCurrentDepartment(dept);
           } else if (fetchedDepartments.length > 0) {
             setCurrentDepartment(fetchedDepartments[0]);
           }
         } else if (!currentDepartment && fetchedDepartments.length > 0) {
+          console.log("DepartmentContext: Setting default department", fetchedDepartments[0]);
           setCurrentDepartment(fetchedDepartments[0]);
         }
       }
@@ -134,13 +142,19 @@ export const DepartmentProvider: React.FC<{ children: ReactNode }> = ({ children
     return userDepartments.some(ud => ud.departmentId === departmentId && ud.isAdmin);
   };
 
+  // Add debug logging when current department changes
+  const handleSetCurrentDepartment = (department: Department) => {
+    console.log("DepartmentContext: Setting current department:", department);
+    setCurrentDepartment(department);
+  };
+
   return (
     <DepartmentContext.Provider
       value={{
         departments,
         userDepartments,
         currentDepartment,
-        setCurrentDepartment,
+        setCurrentDepartment: handleSetCurrentDepartment,
         isLoading,
         hasAccess,
         isAdmin,
