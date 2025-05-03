@@ -1,109 +1,91 @@
 
-import React, { useState } from 'react';
-import * as XLSX from 'xlsx';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
-import { AlertCircle, Download, FileSpreadsheet, Upload } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { Check, Info, X, Download, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '@/components/ui/use-toast';
+import * as XLSX from 'xlsx';
+import { useAuth } from '@/contexts/AuthContext';
 
-interface SongData {
+type Song = {
   title: string;
   artist?: string;
   key?: string;
   bpm?: number;
   sheet_url?: string;
   youtube_url?: string;
-}
+};
 
 const SongImport: React.FC = () => {
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<SongData[]>([]);
   const { toast } = useToast();
+  const [file, setFile] = useState<File | null>(null);
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<{ success: Song[], failed: Song[] }>({ success: [], failed: [] });
+  const [showResults, setShowResults] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
 
-  // Process the Excel file when selected
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    setError(null);
-    setPreview([]);
-    
-    if (files && files.length > 0) {
-      const selectedFile = files[0];
-      
-      // Check if file is Excel
-      if (!selectedFile.name.match(/\.(xlsx|xls)$/)) {
-        setError("Por favor, selecione um arquivo Excel válido (.xlsx ou .xls)");
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFile = e.target.files[0];
+      if (!selectedFile.name.endsWith('.xlsx')) {
+        toast({
+          title: 'Formato de arquivo inválido',
+          description: 'Por favor, selecione um arquivo Excel (.xlsx)',
+          variant: 'destructive',
+        });
         return;
       }
-      
       setFile(selectedFile);
-      
-      // Parse Excel file for preview
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        try {
-          const data = evt.target?.result;
-          const workbook = XLSX.read(data, { type: 'binary' });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
-          
-          // Validate and map data
-          const songsData = jsonData.map((row: any) => ({
-            title: row.title || row.Title || row.Título || row.titulo || "",
-            artist: row.artist || row.Artist || row.Artista || row.artista || "",
-            key: row.key || row.Key || row.Tom || row.tom || "",
-            bpm: row.bpm || row.BPM || 0,
-            sheet_url: row.sheet_url || row.sheetUrl || row.Cifra || row.cifra || "",
-            youtube_url: row.youtube_url || row.youtubeUrl || row.YouTube || row.youtube || "",
-          }));
-          
-          // Validate required fields
-          const validSongs = songsData.filter(song => song.title);
-          
-          if (validSongs.length === 0) {
-            setError("Nenhuma música válida encontrada no arquivo. Verifique se o arquivo tem uma coluna 'title' ou 'Título'.");
-            return;
-          }
-          
-          setPreview(validSongs);
-        } catch (error) {
-          console.error("Error processing file:", error);
-          setError("Erro ao processar o arquivo Excel. Verifique se o formato está correto.");
-        }
-      };
-      
-      reader.onerror = () => {
-        setError("Erro ao ler o arquivo.");
-      };
-      
-      reader.readAsBinaryString(selectedFile);
+      processExcelFile(selectedFile);
     }
   };
 
-  // Handle import button click
-  const handleImport = async () => {
-    if (!preview.length || !user) return;
-    
-    setUploading(true);
-    setProgress(0);
-    
+  const processExcelFile = async (file: File) => {
     try {
-      let successCount = 0;
-      let errorCount = 0;
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json<Song>(worksheet);
       
-      // Import songs one by one to show progress
-      for (let i = 0; i < preview.length; i++) {
-        const song = preview[i];
-        
+      // Validating required fields
+      const validSongs = jsonData.filter(song => song.title);
+      setSongs(validSongs);
+      
+      toast({
+        title: 'Arquivo processado',
+        description: `${validSongs.length} músicas encontradas`,
+      });
+    } catch (error) {
+      console.error('Error processing Excel file:', error);
+      toast({
+        title: 'Erro ao processar arquivo',
+        description: 'Ocorreu um erro ao ler o arquivo Excel',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const uploadSongs = async () => {
+    if (!user) {
+      toast({
+        title: 'Erro de autenticação',
+        description: 'Você precisa estar logado para importar músicas',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    const successful: Song[] = [];
+    const failed: Song[] = [];
+    
+    for (const song of songs) {
+      try {
         const { error } = await supabase.from('songs').insert({
           title: song.title,
           artist: song.artist || null,
@@ -114,163 +96,171 @@ const SongImport: React.FC = () => {
           created_by: user.id
         });
         
-        if (error) {
-          console.error("Error importing song:", error);
-          errorCount++;
-        } else {
-          successCount++;
-        }
-        
-        // Update progress
-        const currentProgress = Math.round(((i + 1) / preview.length) * 100);
-        setProgress(currentProgress);
+        if (error) throw error;
+        successful.push(song);
+      } catch (error) {
+        console.error('Error uploading song:', error);
+        failed.push(song);
       }
-      
-      // Show results
-      if (errorCount > 0) {
-        toast({
-          title: "Importação concluída com avisos",
-          description: `${successCount} músicas importadas com sucesso. ${errorCount} músicas não puderam ser importadas.`,
-          variant: "default",
-        });
-      } else {
-        toast({
-          title: "Importação concluída com sucesso",
-          description: `${successCount} músicas foram adicionadas ao repertório.`,
-          variant: "success",
-        });
-      }
-      
-      // Reset states
-      setFile(null);
-      setPreview([]);
-      
-      // Reset file input
-      const fileInput = document.getElementById('excel-upload') as HTMLInputElement;
-      if (fileInput) fileInput.value = '';
-      
-    } catch (error) {
-      console.error("Import error:", error);
-      toast({
-        title: "Erro na importação",
-        description: "Ocorreu um erro ao importar as músicas. Tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
     }
+    
+    setUploadStatus({ success: successful, failed });
+    setShowResults(true);
+    setIsUploading(false);
+    
+    toast({
+      title: 'Importação concluída',
+      description: `${successful.length} músicas importadas. ${failed.length} falhas.`,
+      variant: failed.length > 0 ? 'destructive' : 'default',
+    });
   };
 
-  // Download template
   const downloadTemplate = () => {
     const template = [
       {
-        title: "Nome da Música",
-        artist: "Nome do Artista",
-        key: "C",
+        title: 'Nome da Música',
+        artist: 'Artista/Compositor',
+        key: 'Tom (ex: C, D, Em)',
         bpm: 120,
-        sheet_url: "https://exemplo.com/cifra.pdf",
-        youtube_url: "https://youtube.com/watch?v=exemplo"
+        sheet_url: 'https://exemplo.com/partitura.pdf',
+        youtube_url: 'https://www.youtube.com/watch?v=exemplo'
       }
     ];
     
-    const worksheet = XLSX.utils.json_to_sheet(template);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Músicas");
-    
-    // Generate and download the file
-    XLSX.writeFile(workbook, "template_musicas.xlsx");
+    const ws = XLSX.utils.json_to_sheet(template);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+    XLSX.writeFile(wb, 'template_importacao_musicas.xlsx');
+  };
+
+  const resetProcess = () => {
+    setFile(null);
+    setSongs([]);
+    setShowResults(false);
+    setUploadStatus({ success: [], failed: [] });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
-    <Card>
+    <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle>Importar Músicas</CardTitle>
         <CardDescription>
-          Importe múltiplas músicas de uma planilha Excel
+          Importe suas músicas de uma planilha Excel (.xlsx)
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <Input
-              id="excel-upload"
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={handleFileChange}
-              disabled={uploading}
-            />
-          </div>
-          <Button 
-            variant="outline" 
-            onClick={downloadTemplate}
-            disabled={uploading}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Template
-          </Button>
-        </div>
-        
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Erro</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        
-        {uploading && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span>Importando músicas...</span>
-              <span>{progress}%</span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </div>
-        )}
-        
-        {preview.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <FileSpreadsheet className="h-5 w-5 text-primary" />
-              <h3 className="text-sm font-medium">Prévia da importação</h3>
-            </div>
+      <CardContent>
+        {showResults ? (
+          <div>
+            <Alert className="mb-4" variant="default">
+              <Info className="h-4 w-4" />
+              <AlertTitle>Resultado da importação</AlertTitle>
+              <AlertDescription>
+                {uploadStatus.success.length} músicas foram importadas com sucesso.
+                {uploadStatus.failed.length > 0 && (
+                  <span> {uploadStatus.failed.length} músicas não puderam ser importadas.</span>
+                )}
+              </AlertDescription>
+            </Alert>
             
-            <div className="rounded-md border">
-              <div className="p-4 bg-muted/50">
-                <p className="text-sm font-medium">
-                  {preview.length} músicas encontradas no arquivo
-                </p>
-              </div>
-              <div className="p-4 max-h-48 overflow-auto">
-                <ul className="space-y-2 text-sm">
-                  {preview.slice(0, 10).map((song, idx) => (
-                    <li key={idx} className="flex items-center">
-                      <div className="w-8 text-center">{idx + 1}</div>
-                      <div className="flex-1 font-medium">{song.title}</div>
-                      <div className="text-muted-foreground">{song.artist}</div>
+            {uploadStatus.success.length > 0 && (
+              <div className="mt-4">
+                <h3 className="text-sm font-medium mb-2">Músicas importadas:</h3>
+                <ul className="space-y-1">
+                  {uploadStatus.success.map((song, idx) => (
+                    <li key={idx} className="text-sm flex items-center">
+                      <Check className="h-4 w-4 text-green-500 mr-2" />
+                      {song.title} {song.artist && `- ${song.artist}`}
                     </li>
                   ))}
-                  {preview.length > 10 && (
-                    <li className="text-muted-foreground text-center">
-                      ...e mais {preview.length - 10} músicas
-                    </li>
-                  )}
                 </ul>
               </div>
-            </div>
+            )}
+            
+            {uploadStatus.failed.length > 0 && (
+              <div className="mt-4">
+                <h3 className="text-sm font-medium mb-2 text-red-500">Falhas na importação:</h3>
+                <ul className="space-y-1">
+                  {uploadStatus.failed.map((song, idx) => (
+                    <li key={idx} className="text-sm flex items-center">
+                      <X className="h-4 w-4 text-red-500 mr-2" />
+                      {song.title} {song.artist && `- ${song.artist}`}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
+        ) : (
+          <>
+            <div className="space-y-4">
+              <div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={downloadTemplate}
+                  className="w-full"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Baixar template Excel
+                </Button>
+              </div>
+              
+              <div className="grid w-full max-w-sm items-center gap-1.5">
+                <Input
+                  type="file"
+                  accept=".xlsx"
+                  onChange={handleFileChange}
+                  ref={fileInputRef}
+                  className="cursor-pointer"
+                />
+              </div>
+              
+              {songs.length > 0 && (
+                <div>
+                  <p className="text-sm mb-1">
+                    {songs.length} músicas encontradas no arquivo.
+                  </p>
+                  <ul className="text-sm max-h-40 overflow-y-auto border rounded p-2">
+                    {songs.slice(0, 10).map((song, idx) => (
+                      <li key={idx} className="mb-1">
+                        {song.title} {song.artist && `- ${song.artist}`}
+                      </li>
+                    ))}
+                    {songs.length > 10 && <li>+ {songs.length - 10} músicas</li>}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </CardContent>
-      <CardFooter>
-        <Button 
-          onClick={handleImport} 
-          disabled={!preview.length || uploading}
-          className="w-full"
-        >
-          <Upload className="w-4 h-4 mr-2" />
-          {uploading ? "Importando..." : "Importar Músicas"}
-        </Button>
+      <CardFooter className="flex justify-between">
+        {showResults ? (
+          <Button onClick={resetProcess} className="w-full">
+            Importar mais músicas
+          </Button>
+        ) : (
+          <Button
+            onClick={uploadSongs}
+            disabled={songs.length === 0 || isUploading}
+            className="w-full"
+          >
+            {isUploading ? (
+              <>
+                <span className="animate-spin mr-2">⏳</span>
+                Importando...
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                Importar {songs.length} músicas
+              </>
+            )}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );
