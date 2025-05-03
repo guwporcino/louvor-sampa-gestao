@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -228,7 +227,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
               <Label htmlFor="classroomId">Sala de Aula</Label>
               {isLoadingClassrooms ? (
                 <div className="flex justify-center py-2">
-                  <LoadingSpinner size="sm" />
+                  <LoadingSpinner />
                 </div>
               ) : (
                 <Select
