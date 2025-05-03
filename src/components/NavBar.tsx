@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
@@ -6,11 +5,13 @@ import { FileText, Music, Calendar, User, FileMusic, LogOut } from "lucide-react
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
-
 const NavBar: React.FC = () => {
   const location = useLocation();
-  const { user, profile, signOut } = useAuth();
-
+  const {
+    user,
+    profile,
+    signOut
+  } = useAuth();
   const isActive = (path: string) => {
     return location.pathname === path;
   };
@@ -18,24 +19,17 @@ const NavBar: React.FC = () => {
   // Get user initials for avatar
   const getUserInitials = () => {
     if (profile?.name) {
-      return profile.name
-        .split(' ')
-        .map((n: string) => n[0])
-        .join('')
-        .toUpperCase()
-        .substring(0, 2);
+      return profile.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2);
     }
     return user?.email?.substring(0, 2).toUpperCase() || 'U';
   };
-
-  return (
-    <>
+  return <>
       <Sidebar>
         <SidebarHeader className="px-4 py-6">
           <div className="flex items-center space-x-2">
             <Music className="h-8 w-8 text-worship-gold" />
             <div>
-              <h1 className="text-lg font-bold leading-none text-white">Louvor Sampa</h1>
+              <h1 className="text-lg font-bold leading-none text-white">IbrCaue</h1>
               <p className="text-xs text-gray-200">Gestão de Equipe</p>
             </div>
           </div>
@@ -103,8 +97,6 @@ const NavBar: React.FC = () => {
       <div className="block lg:hidden fixed top-4 left-4 z-30">
         <SidebarTrigger />
       </div>
-    </>
-  );
+    </>;
 };
-
 export default NavBar;
