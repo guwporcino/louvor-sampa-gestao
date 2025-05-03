@@ -176,32 +176,42 @@ const Operators = () => {
           description: "Operador atualizado com sucesso"
         });
       } else {
-        // Create new operator profile with a UUID
-        const newOperatorId = crypto.randomUUID();
+        // First create the user in the auth service
+        const { error: signUpError, data: authData } = await supabase.auth.admin.createUser({
+          email: formData.email,
+          email_confirm: true,
+          user_metadata: { name: formData.name }
+        });
+
+        if (signUpError) {
+          throw new Error(`Erro ao criar usuário: ${signUpError.message}`);
+        }
         
-        // Create profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: newOperatorId,
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone || null,
-            active: formData.active
-          });
-
-        if (profileError) throw profileError;
-
-        // Associate with Sonoplastia department
+        if (!authData?.user) {
+          throw new Error("Falha ao criar usuário");
+        }
+        
+        // The profile should be created automatically through the trigger
+        // Now we just need to associate with Sonoplastia department
         const { error: deptError } = await supabase
           .from('user_departments')
           .insert({
-            user_id: newOperatorId,
+            user_id: authData.user.id,
             department_id: soundDepartment.data.id,
             is_admin: false
           });
 
         if (deptError) throw deptError;
+        
+        // Update phone number if provided
+        if (formData.phone) {
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ phone: formData.phone })
+            .eq('id', authData.user.id);
+            
+          if (updateError) throw updateError;
+        }
         
         toast({
           title: "Sucesso",

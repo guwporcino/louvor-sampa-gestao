@@ -149,6 +149,7 @@ const Teachers = () => {
     setIsSubmitting(true);
     
     try {
+      // Buscar o departamento de Escola Bíblica
       const schoolDepartment = await supabase
         .from('departments')
         .select('id')
@@ -178,32 +179,42 @@ const Teachers = () => {
           description: "Professor atualizado com sucesso"
         });
       } else {
-        // Create new teacher profile with a UUID
-        const newTeacherId = crypto.randomUUID(); 
+        // First create the user in the auth service
+        const { error: signUpError, data: authData } = await supabase.auth.admin.createUser({
+          email: formData.email,
+          email_confirm: true,
+          user_metadata: { name: formData.name }
+        });
+
+        if (signUpError) {
+          throw new Error(`Erro ao criar usuário: ${signUpError.message}`);
+        }
         
-        // Create profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: newTeacherId,
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone || null,
-            active: formData.active
-          });
-
-        if (profileError) throw profileError;
-
-        // Associate with Escola Bíblica department
+        if (!authData?.user) {
+          throw new Error("Falha ao criar usuário");
+        }
+        
+        // The profile should be created automatically through the trigger
+        // Now we just need to associate with Escola Bíblica department
         const { error: deptError } = await supabase
           .from('user_departments')
           .insert({
-            user_id: newTeacherId,
+            user_id: authData.user.id,
             department_id: schoolDepartment.data.id,
             is_admin: false
           });
 
         if (deptError) throw deptError;
+        
+        // Update phone number if provided
+        if (formData.phone) {
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ phone: formData.phone })
+            .eq('id', authData.user.id);
+            
+          if (updateError) throw updateError;
+        }
         
         toast({
           title: "Sucesso",
