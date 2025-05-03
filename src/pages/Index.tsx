@@ -120,7 +120,13 @@ const Index = () => {
             <CardDescription>Últimos membros adicionados</CardDescription>
           </CardHeader>
           <CardContent className="pb-2">
-            {mockMembers.slice(0, 3).map(renderMemberItem)}
+            {mockMembers.length > 0 ? (
+              mockMembers.slice(0, 3).map(renderMemberItem)
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-4">
+                Nenhum membro cadastrado
+              </p>
+            )}
           </CardContent>
           <CardFooter>
             <Button 
@@ -143,7 +149,13 @@ const Index = () => {
             <CardDescription>Músicas recentes</CardDescription>
           </CardHeader>
           <CardContent className="pb-2">
-            {mockSongs.slice(0, 3).map(renderSongItem)}
+            {mockSongs.length > 0 ? (
+              mockSongs.slice(0, 3).map(renderSongItem)
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-4">
+                Nenhuma música cadastrada
+              </p>
+            )}
           </CardContent>
           <CardFooter>
             <Button 

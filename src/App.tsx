@@ -34,8 +34,14 @@ const App = () => {
                 <Route path="/" element={<MainLayout />}>
                   <Route index element={<Index />} />
                   <Route path="membros" element={<Members />} />
+                  <Route path="membros/:id" element={<Members />} />
+                  <Route path="membros/novo" element={<Members />} />
                   <Route path="escalas" element={<Schedules />} />
+                  <Route path="escalas/:id" element={<Schedules />} />
+                  <Route path="escalas/novo" element={<Schedules />} />
                   <Route path="repertorio" element={<Songs />} />
+                  <Route path="repertorio/:id" element={<Songs />} />
+                  <Route path="repertorio/novo" element={<Songs />} />
                 </Route>
               </Route>
               
