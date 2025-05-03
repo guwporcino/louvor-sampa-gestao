@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -159,7 +160,16 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
     onSubmit(formData);
   };
 
-  // Se estiver em modo de visualização, renderize o componente de ações
+  // Debug logging to understand what's happening during rendering
+  console.log('ScheduleForm rendering with', { 
+    isEditing, 
+    isViewing, 
+    viewMode, 
+    hasSchedule: !!schedule,
+    departmentId: formData.departmentId
+  });
+
+  // If in view mode, render the ScheduleActions component
   if (isViewing && schedule) {
     return (
       <Card className="w-full max-w-3xl mx-auto">
@@ -185,12 +195,12 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
     );
   }
 
-  // Determina quais campos mostrar com base no departamento selecionado
+  // Determine which fields to show based on the department selected
   const isDepartmentLouvor = getDepartmentName(formData.departmentId) === 'Louvor';
   const isDepartmentEBD = getDepartmentName(formData.departmentId) === 'Escola Bíblica';
   const isDepartmentSom = getDepartmentName(formData.departmentId) === 'Sonoplastia';
 
-  // Caso contrário, renderize o formulário normalmente
+  // Regular form rendering
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <form onSubmit={handleSubmit}>
