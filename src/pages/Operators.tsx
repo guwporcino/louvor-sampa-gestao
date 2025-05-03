@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Search, Headphones, Edit, X, Check } from "lucide-react";
+import { Plus, Search, Headphones, Edit, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -176,23 +176,19 @@ const Operators = () => {
           description: "Operador atualizado com sucesso"
         });
       } else {
-        // Create new operator profile - Fix: Use the auth.uid() as ID or generate a UUID
-        const { data: userData, error: authError } = await supabase.auth.getUser();
+        // Create new operator profile with a UUID
+        const newOperatorId = crypto.randomUUID();
         
-        if (authError) throw authError;
-        
-        // Generate a UUID for the new profile
-        const { data: profileData, error: profileError } = await supabase
+        // Create profile
+        const { error: profileError } = await supabase
           .from('profiles')
           .insert({
-            id: crypto.randomUUID(), // Generate a UUID for the new profile
+            id: newOperatorId,
             name: formData.name,
             email: formData.email,
             phone: formData.phone || null,
             active: formData.active
-          })
-          .select('id')
-          .single();
+          });
 
         if (profileError) throw profileError;
 
@@ -200,7 +196,7 @@ const Operators = () => {
         const { error: deptError } = await supabase
           .from('user_departments')
           .insert({
-            user_id: profileData.id,
+            user_id: newOperatorId,
             department_id: soundDepartment.data.id,
             is_admin: false
           });
@@ -263,7 +259,7 @@ const Operators = () => {
               <Headphones className="h-16 w-16 text-gray-300 mb-4" />
               <p className="text-xl mb-2">Nenhum operador cadastrado</p>
               <p className="text-gray-500 mb-4 max-w-sm">
-                Cadastre operadores para criar escalas de som e mídia para os cultos
+                Cadastre operadores para criar escalas de som e mídia
               </p>
               <Button 
                 className="bg-worship-purple hover:bg-worship-purple/80"

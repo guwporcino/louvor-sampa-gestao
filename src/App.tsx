@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState } from "react";
 
 import MainLayout from "./layout/MainLayout";
@@ -74,6 +74,9 @@ const App = () => {
                     
                     {/* Settings */}
                     <Route path="configuracoes" element={<Settings />} />
+                    
+                    {/* Redirect for back navigation from specific schedules */}
+                    <Route path="escalas-louvor" element={<Navigate to="/escalas" replace />} />
                   </Route>
                 </Route>
                 

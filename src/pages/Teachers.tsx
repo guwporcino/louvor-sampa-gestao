@@ -25,6 +25,7 @@ import { useToast } from "@/components/ui/use-toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { useDepartment } from "@/contexts/DepartmentContext";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Teacher {
   id: string;
@@ -40,6 +41,7 @@ const Teachers = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const { currentDepartment } = useDepartment();
+  const { user } = useAuth();
 
   // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -176,18 +178,19 @@ const Teachers = () => {
           description: "Professor atualizado com sucesso"
         });
       } else {
-        // Create new teacher profile - Fix: Use a generated UUID for the new profile
-        const { data: profileData, error: profileError } = await supabase
+        // Create new teacher profile with a UUID
+        const newTeacherId = crypto.randomUUID(); 
+        
+        // Create profile
+        const { error: profileError } = await supabase
           .from('profiles')
           .insert({
-            id: crypto.randomUUID(), // Generate a UUID for the new profile
+            id: newTeacherId,
             name: formData.name,
             email: formData.email,
             phone: formData.phone || null,
             active: formData.active
-          })
-          .select('id')
-          .single();
+          });
 
         if (profileError) throw profileError;
 
@@ -195,7 +198,7 @@ const Teachers = () => {
         const { error: deptError } = await supabase
           .from('user_departments')
           .insert({
-            user_id: profileData.id,
+            user_id: newTeacherId,
             department_id: schoolDepartment.data.id,
             is_admin: false
           });
