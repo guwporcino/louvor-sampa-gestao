@@ -11,18 +11,46 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Headphones } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Plus, Search, Headphones, Edit, X, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { useDepartment } from "@/contexts/DepartmentContext";
+import { Label } from "@/components/ui/label";
+
+interface Operator {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  active: boolean;
+}
 
 const Operators = () => {
   const { toast } = useToast();
-  const [operators, setOperators] = useState<any[]>([]);
+  const [operators, setOperators] = useState<Operator[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const { currentDepartment } = useDepartment();
+
+  // Dialog state
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingOperator, setEditingOperator] = useState<Operator | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    active: true
+  });
 
   useEffect(() => {
     fetchOperators();
@@ -61,7 +89,7 @@ const Operators = () => {
         .map((item) => item.profiles)
         .filter(Boolean);
       
-      setOperators(formattedOperators);
+      setOperators(formattedOperators as Operator[]);
     } catch (error: any) {
       console.error("Erro ao buscar operadores:", error);
       toast({
@@ -80,6 +108,119 @@ const Operators = () => {
       operator.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Handle form input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value
+    });
+  };
+
+  // Open dialog for creating new operator
+  const openNewOperatorDialog = () => {
+    setEditingOperator(null);
+    setFormData({
+      name: "",
+      email: "",
+      phone: "",
+      active: true
+    });
+    setIsDialogOpen(true);
+  };
+
+  // Open dialog for editing existing operator
+  const openEditOperatorDialog = (operator: Operator) => {
+    setEditingOperator(operator);
+    setFormData({
+      name: operator.name,
+      email: operator.email,
+      phone: operator.phone || "",
+      active: operator.active
+    });
+    setIsDialogOpen(true);
+  };
+
+  // Submit form to create or update operator
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      const soundDepartment = await supabase
+        .from('departments')
+        .select('id')
+        .eq('name', 'Sonoplastia')
+        .single();
+        
+      if (!soundDepartment.data) {
+        throw new Error("Departamento de Sonoplastia não encontrado");
+      }
+
+      if (editingOperator) {
+        // Update existing operator
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone || null,
+            active: formData.active
+          })
+          .eq('id', editingOperator.id);
+
+        if (profileError) throw profileError;
+
+        toast({
+          title: "Sucesso",
+          description: "Operador atualizado com sucesso"
+        });
+      } else {
+        // Create new operator profile
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone || null,
+            active: formData.active
+          })
+          .select('id')
+          .single();
+
+        if (profileError) throw profileError;
+
+        // Associate with Sonoplastia department
+        const { error: deptError } = await supabase
+          .from('user_departments')
+          .insert({
+            user_id: profileData.id,
+            department_id: soundDepartment.data.id,
+            is_admin: false
+          });
+
+        if (deptError) throw deptError;
+        
+        toast({
+          title: "Sucesso",
+          description: "Novo operador cadastrado com sucesso"
+        });
+      }
+
+      setIsDialogOpen(false);
+      fetchOperators(); // Refresh the operators list
+    } catch (error: any) {
+      console.error("Erro ao salvar operador:", error);
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível salvar o operador",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="animate-fade-in">
       <h1 className="text-3xl font-bold mb-2">Operadores</h1>
@@ -97,7 +238,10 @@ const Operators = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button className="bg-worship-purple hover:bg-worship-purple/80">
+        <Button 
+          className="bg-worship-purple hover:bg-worship-purple/80"
+          onClick={openNewOperatorDialog}
+        >
           <Plus className="mr-2 h-4 w-4" /> Adicionar Operador
         </Button>
       </div>
@@ -115,7 +259,10 @@ const Operators = () => {
               <p className="text-gray-500 mb-4 max-w-sm">
                 Cadastre operadores para criar escalas de som e mídia para os cultos
               </p>
-              <Button className="bg-worship-purple hover:bg-worship-purple/80">
+              <Button 
+                className="bg-worship-purple hover:bg-worship-purple/80"
+                onClick={openNewOperatorDialog}
+              >
                 <Plus className="mr-2 h-4 w-4" /> Adicionar Operador
               </Button>
             </div>
@@ -127,6 +274,7 @@ const Operators = () => {
                   <TableHead>Email</TableHead>
                   <TableHead>Telefone</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -146,6 +294,15 @@ const Operators = () => {
                         </span>
                       )}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => openEditOperatorDialog(operator)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -153,6 +310,94 @@ const Operators = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog for adding/editing operator */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingOperator ? 'Editar Operador' : 'Adicionar Operador'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingOperator 
+                ? 'Atualize as informações do operador abaixo.'
+                : 'Preencha as informações para adicionar um novo operador.'}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Nome</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="phone">Telefone</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  id="active"
+                  name="active"
+                  type="checkbox"
+                  checked={formData.active}
+                  onChange={handleInputChange}
+                  className="h-4 w-4 rounded border-gray-300 text-worship-purple focus:ring-worship-purple"
+                />
+                <Label htmlFor="active">Ativo</Label>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsDialogOpen(false)}
+                disabled={isSubmitting}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-worship-purple hover:bg-worship-purple/80"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <LoadingSpinner className="mr-2" /> Salvando...
+                  </>
+                ) : (
+                  <>
+                    {editingOperator ? <Check className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
+                    {editingOperator ? 'Salvar' : 'Adicionar'}
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -11,18 +11,46 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, School } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Plus, Search, School, Edit, X, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { useDepartment } from "@/contexts/DepartmentContext";
+import { Label } from "@/components/ui/label";
+
+interface Teacher {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  active: boolean;
+}
 
 const Teachers = () => {
   const { toast } = useToast();
-  const [teachers, setTeachers] = useState<any[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const { currentDepartment } = useDepartment();
+
+  // Dialog state
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    active: true
+  });
 
   useEffect(() => {
     fetchTeachers();
@@ -61,7 +89,7 @@ const Teachers = () => {
         .map((item) => item.profiles)
         .filter(Boolean);
       
-      setTeachers(formattedTeachers);
+      setTeachers(formattedTeachers as Teacher[]);
     } catch (error: any) {
       console.error("Erro ao buscar professores:", error);
       toast({
@@ -80,6 +108,119 @@ const Teachers = () => {
       teacher.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Handle form input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value
+    });
+  };
+
+  // Open dialog for creating new teacher
+  const openNewTeacherDialog = () => {
+    setEditingTeacher(null);
+    setFormData({
+      name: "",
+      email: "",
+      phone: "",
+      active: true
+    });
+    setIsDialogOpen(true);
+  };
+
+  // Open dialog for editing existing teacher
+  const openEditTeacherDialog = (teacher: Teacher) => {
+    setEditingTeacher(teacher);
+    setFormData({
+      name: teacher.name,
+      email: teacher.email,
+      phone: teacher.phone || "",
+      active: teacher.active
+    });
+    setIsDialogOpen(true);
+  };
+
+  // Submit form to create or update teacher
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      const schoolDepartment = await supabase
+        .from('departments')
+        .select('id')
+        .eq('name', 'Escola Bíblica')
+        .single();
+        
+      if (!schoolDepartment.data) {
+        throw new Error("Departamento de Escola Bíblica não encontrado");
+      }
+
+      if (editingTeacher) {
+        // Update existing teacher
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone || null,
+            active: formData.active
+          })
+          .eq('id', editingTeacher.id);
+
+        if (profileError) throw profileError;
+
+        toast({
+          title: "Sucesso",
+          description: "Professor atualizado com sucesso"
+        });
+      } else {
+        // Create new teacher profile
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone || null,
+            active: formData.active
+          })
+          .select('id')
+          .single();
+
+        if (profileError) throw profileError;
+
+        // Associate with Escola Bíblica department
+        const { error: deptError } = await supabase
+          .from('user_departments')
+          .insert({
+            user_id: profileData.id,
+            department_id: schoolDepartment.data.id,
+            is_admin: false
+          });
+
+        if (deptError) throw deptError;
+        
+        toast({
+          title: "Sucesso",
+          description: "Novo professor cadastrado com sucesso"
+        });
+      }
+
+      setIsDialogOpen(false);
+      fetchTeachers(); // Refresh the teachers list
+    } catch (error: any) {
+      console.error("Erro ao salvar professor:", error);
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível salvar o professor",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="animate-fade-in">
       <h1 className="text-3xl font-bold mb-2">Professores</h1>
@@ -97,7 +238,10 @@ const Teachers = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button className="bg-worship-blue hover:bg-worship-blue/80">
+        <Button 
+          className="bg-worship-blue hover:bg-worship-blue/80"
+          onClick={openNewTeacherDialog}
+        >
           <Plus className="mr-2 h-4 w-4" /> Adicionar Professor
         </Button>
       </div>
@@ -115,7 +259,10 @@ const Teachers = () => {
               <p className="text-gray-500 mb-4 max-w-sm">
                 Cadastre professores para criar escalas para as aulas da escola bíblica
               </p>
-              <Button className="bg-worship-blue hover:bg-worship-blue/80">
+              <Button 
+                className="bg-worship-blue hover:bg-worship-blue/80"
+                onClick={openNewTeacherDialog}
+              >
                 <Plus className="mr-2 h-4 w-4" /> Adicionar Professor
               </Button>
             </div>
@@ -127,6 +274,7 @@ const Teachers = () => {
                   <TableHead>Email</TableHead>
                   <TableHead>Telefone</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -146,6 +294,15 @@ const Teachers = () => {
                         </span>
                       )}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => openEditTeacherDialog(teacher)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -153,6 +310,94 @@ const Teachers = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog for adding/editing teacher */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingTeacher ? 'Editar Professor' : 'Adicionar Professor'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingTeacher 
+                ? 'Atualize as informações do professor abaixo.'
+                : 'Preencha as informações para adicionar um novo professor.'}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Nome</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="phone">Telefone</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  id="active"
+                  name="active"
+                  type="checkbox"
+                  checked={formData.active}
+                  onChange={handleInputChange}
+                  className="h-4 w-4 rounded border-gray-300 text-worship-blue focus:ring-worship-blue"
+                />
+                <Label htmlFor="active">Ativo</Label>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsDialogOpen(false)}
+                disabled={isSubmitting}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-worship-blue hover:bg-worship-blue/80"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <LoadingSpinner className="mr-2" /> Salvando...
+                  </>
+                ) : (
+                  <>
+                    {editingTeacher ? <Check className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
+                    {editingTeacher ? 'Salvar' : 'Adicionar'}
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
