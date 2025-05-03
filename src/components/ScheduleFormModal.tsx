@@ -1,10 +1,14 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ScheduleForm from "./ScheduleForm";
-import { Schedule, Member, Song } from "@/types";
+import { Schedule, Member, Song, Classroom } from "@/types";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ScheduleExport from "./ScheduleExport";
+import SocialShare from "./SocialShare";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ScheduleFormModalProps {
   open: boolean;
@@ -32,6 +36,36 @@ const ScheduleFormModal: React.FC<ScheduleFormModalProps> = ({
   title
 }) => {
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  const [activeTab, setActiveTab] = useState("form");
+  const [classroom, setClassroom] = useState<Classroom | undefined>(undefined);
+
+  // Buscar sala para EBD quando for visualização
+  useEffect(() => {
+    if (viewMode && schedule?.classroomId) {
+      const fetchClassroom = async () => {
+        const { data, error } = await supabase
+          .from('classrooms')
+          .select('*')
+          .eq('id', schedule.classroomId)
+          .single();
+          
+        if (!error && data) {
+          setClassroom({
+            id: data.id,
+            name: data.name,
+            description: data.description || '',
+            ageGroup: data.age_group || '',
+            capacity: data.capacity || 0,
+            location: data.location || '',
+            active: data.active,
+            createdAt: new Date(data.created_at),
+          });
+        }
+      };
+      
+      fetchClassroom();
+    }
+  }, [viewMode, schedule]);
 
   const handleCancel = () => {
     onOpenChange(false);
@@ -64,6 +98,56 @@ const ScheduleFormModal: React.FC<ScheduleFormModalProps> = ({
     ? viewMode ? "Visualizar Escala" : "Editar Escala" 
     : "Nova Escala");
 
+  const renderContent = () => {
+    if (viewMode && schedule) {
+      return (
+        <Tabs defaultValue="form" value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid grid-cols-3 mb-4">
+            <TabsTrigger value="form">Detalhes</TabsTrigger>
+            <TabsTrigger value="export">Exportar</TabsTrigger>
+            <TabsTrigger value="share">Compartilhar</TabsTrigger>
+          </TabsList>
+          <TabsContent value="form">
+            <ScheduleForm
+              schedule={schedule}
+              members={members}
+              songs={songs}
+              onSubmit={handleSubmit}
+              onCancel={handleCancel}
+              isSubmitting={isSubmitting}
+              viewMode={viewMode}
+            />
+          </TabsContent>
+          <TabsContent value="export">
+            <ScheduleExport 
+              schedule={schedule}
+              members={members.filter(m => schedule.members.includes(m.id))}
+              classroom={classroom}
+            />
+          </TabsContent>
+          <TabsContent value="share">
+            <div className="py-4">
+              <h3 className="text-lg font-semibold mb-4">Compartilhar Escala</h3>
+              <SocialShare schedule={schedule} />
+            </div>
+          </TabsContent>
+        </Tabs>
+      );
+    }
+
+    return (
+      <ScheduleForm
+        schedule={schedule}
+        members={members}
+        songs={songs}
+        onSubmit={handleSubmit}
+        onCancel={handleCancel}
+        isSubmitting={isSubmitting}
+        viewMode={viewMode}
+      />
+    );
+  };
+
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -75,15 +159,7 @@ const ScheduleFormModal: React.FC<ScheduleFormModalProps> = ({
             <DialogTitle>{modalTitle}</DialogTitle>
           </DialogHeader>
           <div className="px-6 py-4 overflow-y-auto">
-            <ScheduleForm
-              schedule={schedule}
-              members={members}
-              songs={songs}
-              onSubmit={handleSubmit}
-              onCancel={handleCancel}
-              isSubmitting={isSubmitting}
-              viewMode={viewMode}
-            />
+            {renderContent()}
           </div>
         </DialogContent>
       </Dialog>
@@ -97,15 +173,7 @@ const ScheduleFormModal: React.FC<ScheduleFormModalProps> = ({
           <SheetTitle>{modalTitle}</SheetTitle>
         </SheetHeader>
         <div className="overflow-y-auto">
-          <ScheduleForm
-            schedule={schedule}
-            members={members}
-            songs={songs}
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-            isSubmitting={isSubmitting}
-            viewMode={viewMode}
-          />
+          {renderContent()}
         </div>
       </SheetContent>
     </Sheet>
