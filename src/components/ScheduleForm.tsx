@@ -52,7 +52,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
       members: [],
       songs: [],
       isPublished: false,
-      departmentId: currentDepartment?.id,
+      departmentId: currentDepartment?.id || "",
       classroomId: undefined,
     }
   );
@@ -166,7 +166,8 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
     isViewing, 
     viewMode, 
     hasSchedule: !!schedule,
-    departmentId: formData.departmentId
+    departmentId: formData.departmentId,
+    members: members.length
   });
 
   // If in view mode, render the ScheduleActions component
@@ -284,6 +285,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
                   selected={formData.date}
                   onSelect={handleDateSelect}
                   locale={ptBR}
+                  className="pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>

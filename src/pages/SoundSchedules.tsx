@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,13 +25,25 @@ const SoundSchedules = () => {
   const [view, setView] = useState<"list" | "form" | "detail">("list");
 
   useEffect(() => {
+    console.log('SoundSchedules useEffect - ID:', id);
+    
     if (id === "novo") {
+      console.log('Setting view to form for new schedule');
       setView("form");
       setSelectedSchedule(null);
+      
+      // Ensure operators are loaded for new form
+      if (operators.length === 0) {
+        fetchOperators();
+      }
+      
+      // Set loading to false since we don't need to fetch a specific schedule
+      setIsLoading(false);
     } else if (id) {
-      setView("form");
+      console.log('Setting view to form/detail for existing schedule:', id);
       fetchScheduleById(id);
     } else {
+      console.log('Setting view to list');
       setView("list");
       fetchSchedulesAndOperators();
     }
@@ -208,6 +219,7 @@ const SoundSchedules = () => {
       };
 
       setSelectedSchedule(schedule);
+      setView("form"); // Set view to form after fetching schedule data
     } catch (error) {
       console.error("Erro ao buscar escala:", error);
       toast({
@@ -446,6 +458,13 @@ const SoundSchedules = () => {
     }
   };
 
+  console.log('SoundSchedules rendering with:', {
+    isLoading,
+    view,
+    id,
+    operatorsCount: operators.length,
+  });
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -455,6 +474,9 @@ const SoundSchedules = () => {
   }
 
   if (view === "form") {
+    console.log('Rendering form with selectedSchedule:', !!selectedSchedule);
+    console.log('Operators count:', operators.length);
+    
     return (
       <ScheduleForm
         schedule={selectedSchedule || undefined}
@@ -463,6 +485,7 @@ const SoundSchedules = () => {
         onSubmit={handleSubmit}
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
+        viewMode={false}
       />
     );
   }

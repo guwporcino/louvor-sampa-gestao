@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,13 +26,25 @@ const EBDSchedules = () => {
   const [view, setView] = useState<"list" | "form" | "detail">("list");
 
   useEffect(() => {
+    console.log('EBDSchedules useEffect - ID:', id);
+    
     if (id === "novo") {
+      console.log('Setting view to form for new schedule');
       setView("form");
       setSelectedSchedule(null);
+      
+      // Ensure teachers are loaded for new form
+      if (teachers.length === 0) {
+        fetchTeachers();
+      }
+      
+      // Set loading to false since we don't need to fetch a specific schedule
+      setIsLoading(false);
     } else if (id) {
-      setView("form");
+      console.log('Setting view to form/detail for existing schedule:', id);
       fetchScheduleById(id);
     } else {
+      console.log('Setting view to list');
       setView("list");
       fetchSchedulesAndTeachers();
     }
@@ -214,6 +225,7 @@ const EBDSchedules = () => {
       };
 
       setSelectedSchedule(schedule);
+      setView("form"); // Set view to form after fetching schedule data
     } catch (error) {
       console.error("Erro ao buscar escala:", error);
       toast({
@@ -456,6 +468,13 @@ const EBDSchedules = () => {
     }
   };
 
+  console.log('EBDSchedules rendering with:', {
+    isLoading,
+    view,
+    id,
+    teachersCount: teachers.length,
+  });
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -465,6 +484,9 @@ const EBDSchedules = () => {
   }
 
   if (view === "form") {
+    console.log('Rendering form with selectedSchedule:', !!selectedSchedule);
+    console.log('Teachers count:', teachers.length);
+    
     return (
       <ScheduleForm
         schedule={selectedSchedule || undefined}
@@ -473,6 +495,7 @@ const EBDSchedules = () => {
         onSubmit={handleSubmit}
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
+        viewMode={false}
       />
     );
   }
