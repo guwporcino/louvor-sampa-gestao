@@ -399,6 +399,10 @@ export type Database = {
         Args: { user_uuid: string; dept_uuid: string }
         Returns: boolean
       }
+      is_department_admin: {
+        Args: { user_uuid: string; dept_uuid: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

@@ -161,23 +161,58 @@ export const DepartmentProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   }, [user]);
 
-  // Check if user has access to department
-  const hasAccess = (departmentId: string): boolean => {
+  // Check if user has access to department using our security definer function
+  const hasAccess = async (departmentId: string): Promise<boolean> => {
     if (!user) return false;
-    if (userDepartments.length === 0) return true; // Temporary for development
-    return userDepartments.some(ud => ud.departmentId === departmentId);
+    
+    try {
+      const { data, error } = await supabase.rpc(
+        'has_department_access',
+        { user_uuid: user.id, dept_uuid: departmentId }
+      );
+      
+      if (error) throw error;
+      return data || false;
+    } catch (error) {
+      console.error('Error checking department access:', error);
+      return false;
+    }
   };
   
-  // Check if user is admin of department
-  const isAdmin = (departmentId: string): boolean => {
+  // Check if user is admin of department using our security definer function
+  const isAdmin = async (departmentId: string): Promise<boolean> => {
     if (!user) return false;
-    return userDepartments.some(ud => ud.departmentId === departmentId && ud.isAdmin);
+    
+    try {
+      const { data, error } = await supabase.rpc(
+        'is_department_admin',
+        { user_uuid: user.id, dept_uuid: departmentId }
+      );
+      
+      if (error) throw error;
+      return data || false;
+    } catch (error) {
+      console.error('Error checking department admin status:', error);
+      return false;
+    }
   };
 
   // Add debug logging when current department changes
   const handleSetCurrentDepartment = (department: Department) => {
     console.log("DepartmentContext: Setting current department:", department);
     setCurrentDepartment(department);
+  };
+
+  // For backward compatibility, provide synchronous versions that use the cached state
+  const hasAccessSync = (departmentId: string): boolean => {
+    if (!user) return false;
+    if (userDepartments.length === 0) return true; // Temporary for development
+    return userDepartments.some(ud => ud.departmentId === departmentId);
+  };
+  
+  const isAdminSync = (departmentId: string): boolean => {
+    if (!user) return false;
+    return userDepartments.some(ud => ud.departmentId === departmentId && ud.isAdmin);
   };
 
   return (
@@ -188,8 +223,8 @@ export const DepartmentProvider: React.FC<{ children: ReactNode }> = ({ children
         currentDepartment,
         setCurrentDepartment: handleSetCurrentDepartment,
         isLoading,
-        hasAccess,
-        isAdmin,
+        hasAccess: hasAccessSync, // Keep using the sync version for now to avoid breaking changes
+        isAdmin: isAdminSync, // Keep using the sync version for now to avoid breaking changes
         refetchDepartments: fetchDepartments,
         associateUserWithDepartment
       }}
