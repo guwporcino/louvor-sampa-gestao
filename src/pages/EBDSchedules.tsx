@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -350,6 +349,111 @@ const EBDSchedules = () => {
     setView("list");
   };
 
+  // New functions for replication and random generation
+  const handleReplicateSchedule = async (newSchedule: Omit<Schedule, 'id' | 'createdAt'>) => {
+    try {
+      setIsSubmitting(true);
+      
+      // Create the new schedule
+      const { data, error } = await supabase
+        .from("schedules")
+        .insert({
+          title: newSchedule.title,
+          description: newSchedule.description,
+          date: newSchedule.date?.toISOString(),
+          is_published: newSchedule.isPublished,
+          department_id: newSchedule.departmentId,
+          classroom_id: newSchedule.classroomId,
+        })
+        .select("id")
+        .single();
+
+      if (error) throw error;
+
+      // Add member associations if any
+      if (newSchedule.members && newSchedule.members.length > 0) {
+        const memberInserts = newSchedule.members.map((memberId) => ({
+          schedule_id: data.id,
+          member_id: memberId,
+        }));
+
+        const { error: memberError } = await supabase
+          .from("schedule_members")
+          .insert(memberInserts);
+
+        if (memberError) throw memberError;
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Escala replicada com sucesso",
+      });
+      
+      navigate("/escalas-ebd");
+    } catch (error: any) {
+      console.error("Erro ao replicar escala:", error);
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível replicar a escala",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleGenerateSchedule = async (newSchedule: Omit<Schedule, 'id' | 'createdAt'>) => {
+    try {
+      setIsSubmitting(true);
+      
+      // Create the new schedule
+      const { data, error } = await supabase
+        .from("schedules")
+        .insert({
+          title: newSchedule.title,
+          description: newSchedule.description,
+          date: newSchedule.date?.toISOString(),
+          is_published: newSchedule.isPublished,
+          department_id: newSchedule.departmentId,
+          classroom_id: newSchedule.classroomId,
+        })
+        .select("id")
+        .single();
+
+      if (error) throw error;
+
+      // Add member associations if any
+      if (newSchedule.members && newSchedule.members.length > 0) {
+        const memberInserts = newSchedule.members.map((memberId) => ({
+          schedule_id: data.id,
+          member_id: memberId,
+        }));
+
+        const { error: memberError } = await supabase
+          .from("schedule_members")
+          .insert(memberInserts);
+
+        if (memberError) throw memberError;
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Escala aleatória gerada com sucesso",
+      });
+      
+      navigate("/escalas-ebd");
+    } catch (error: any) {
+      console.error("Erro ao gerar escala aleatória:", error);
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível gerar a escala aleatória",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -373,14 +477,32 @@ const EBDSchedules = () => {
 
   if (view === "detail" && selectedSchedule) {
     return (
-      <ScheduleForm
-        schedule={selectedSchedule}
-        members={teachers}
-        songs={[]}
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-        viewMode={true}
-      />
+      <div className="animate-fade-in">
+        <Card className="w-full max-w-3xl mx-auto">
+          <CardContent className="pt-6">
+            <ScheduleActions
+              schedule={selectedSchedule}
+              members={teachers}
+              songs={[]}
+              onReplicateSchedule={handleReplicateSchedule}
+              onGenerateSchedule={handleGenerateSchedule}
+            />
+            
+            <div className="flex justify-end mt-6">
+              <Button 
+                variant="outline" 
+                className="mr-2"
+                onClick={handleCancel}
+              >
+                Voltar
+              </Button>
+              <Button onClick={() => handleEditSchedule(selectedSchedule)}>
+                Editar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
