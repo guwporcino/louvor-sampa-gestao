@@ -29,17 +29,10 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
         description: "Por favor, aguarde enquanto geramos o PDF da escala."
       });
 
-      // The JsPDFGenerator is a function that we call directly
-      const options = {
+      // Use default options compatible with the library
+      await JsPDFGenerator(contentRef.current, {
         filename: `Escala_${schedule.title.replace(/\s+/g, '_')}.pdf`,
-        format: "a4",
-        orientation: "portrait",
-        quality: 2,
-        unit: "mm"
-      };
-      
-      // Call the function directly
-      await JsPDFGenerator(contentRef.current, options);
+      });
 
       toast({
         title: "PDF gerado com sucesso!",
@@ -75,23 +68,15 @@ const ScheduleActions: React.FC<ScheduleActionsProps> = ({
         description: "Por favor, aguarde enquanto preparamos a escala."
       });
 
-      const options = {
-        format: "a4",
-        orientation: "portrait",
-        quality: 2,
-        unit: "mm"
-      };
-      
-      // For blob generation, we need to use a different approach
-      // First generate the PDF using JsPDF directly
-      const pdf = await JsPDFGenerator(contentRef.current, {
-        ...options,
-        returnJsPDF: true // This option should return the jsPDF instance
+      // Generate PDF and get the blob
+      const result = await JsPDFGenerator(contentRef.current, {
+        returnPromise: true // This should return a Promise we can use
       });
       
-      // Then get the blob from the PDF
-      // @ts-ignore - Handling the returned jsPDF instance
-      const pdfBlob = pdf.output('blob');
+      // Convert the result to a blob
+      // We need to use the jsPDF instance's output method
+      // @ts-ignore - Type definitions might be incomplete
+      const pdfBlob = result.output('blob');
       
       const pdfFile = new File([pdfBlob], `Escala_${schedule.title.replace(/\s+/g, '_')}.pdf`, { 
         type: 'application/pdf' 
