@@ -84,10 +84,6 @@
   body {
     @apply bg-background text-foreground;
   }
-  
-  html {
-    @apply scroll-smooth;
-  }
 }
 
 @layer utilities {
@@ -101,13 +97,5 @@
 
   .worship-card {
     @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 gold-glow;
-  }
-  
-  .pricing-highlight {
-    @apply relative overflow-hidden;
-  }
-  
-  .pricing-highlight::before {
-    @apply content-[''] absolute -top-4 -right-12 w-24 h-24 bg-worship-purple rotate-45 z-0;
   }
 }
