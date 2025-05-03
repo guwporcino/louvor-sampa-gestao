@@ -1,6 +1,6 @@
 
 import { Schedule, Member } from "../types";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 
 // Function to replicate a schedule with a new date
 export const replicateSchedule = (schedule: Schedule, newDate: Date): Omit<Schedule, 'id' | 'createdAt'> => {
