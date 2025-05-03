@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Search, School, Edit, X, Check } from "lucide-react";
+import { Plus, Search, School, Edit, X, Check, RefreshCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -38,8 +39,9 @@ const Teachers = () => {
   const { toast } = useToast();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const { currentDepartment, associateUserWithDepartment } = useDepartment();
+  const { currentDepartment, associateUserWithDepartment, refetchDepartments } = useDepartment();
   const { user } = useAuth();
 
   // Dialog state
@@ -61,16 +63,18 @@ const Teachers = () => {
   const fetchTeachers = async () => {
     try {
       setLoading(true);
+      setFetchError(null);
       
       // Early exit if no current department
       if (!currentDepartment) {
         setTeachers([]);
+        setFetchError("Nenhum departamento selecionado. Por favor, selecione um departamento.");
         return;
       }
       
-      console.log("Teachers: Fetching teachers for department:", currentDepartment?.name);
+      console.log("Teachers: Fetching teachers for department:", currentDepartment?.name, currentDepartment?.id);
       
-      // Busca professores (usuários com associação ao departamento Escola Bíblica)
+      // Busca professores (usuários com associação ao departamento selecionado)
       const { data: userDeptData, error } = await supabase
         .from('user_departments')
         .select(`
@@ -84,7 +88,10 @@ const Teachers = () => {
         `)
         .eq('department_id', currentDepartment.id);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching user departments:", error);
+        throw error;
+      }
       
       console.log("Teachers: Fetched user departments:", userDeptData);
       
@@ -95,6 +102,7 @@ const Teachers = () => {
       setTeachers(formattedTeachers as Teacher[]);
     } catch (error: any) {
       console.error("Erro ao buscar professores:", error);
+      setFetchError(error.message || "Não foi possível carregar os professores");
       toast({
         title: "Erro",
         description: "Não foi possível carregar os professores",
@@ -208,7 +216,7 @@ const Teachers = () => {
           })
           .eq('id', userData.user.id);
         
-        // Associate user with the departamento Escola Bíblica
+        // Associate user with the current department
         await associateUserWithDepartment(userData.user.id, currentDepartment.id, false);
         
         toast({
@@ -230,6 +238,41 @@ const Teachers = () => {
       setIsSubmitting(false);
     }
   };
+
+  const renderEmptyState = () => (
+    <div className="flex flex-col justify-center items-center h-64 text-center">
+      <School className="h-16 w-16 text-gray-300 mb-4" />
+      <p className="text-xl mb-2">Nenhum professor cadastrado</p>
+      <p className="text-gray-500 mb-4 max-w-sm">
+        Cadastre professores para criar escalas para as aulas da escola bíblica
+      </p>
+      <Button 
+        className="bg-worship-blue hover:bg-worship-blue/80"
+        onClick={openNewTeacherDialog}
+      >
+        <Plus className="mr-2 h-4 w-4" /> Adicionar Professor
+      </Button>
+    </div>
+  );
+
+  const renderErrorState = () => (
+    <div className="flex flex-col justify-center items-center h-64 text-center">
+      <X className="h-16 w-16 text-red-400 mb-4" />
+      <p className="text-xl mb-2">Ocorreu um erro</p>
+      <p className="text-gray-500 mb-4 max-w-sm">
+        {fetchError || "Não foi possível carregar os professores"}
+      </p>
+      <Button 
+        variant="outline"
+        onClick={() => {
+          fetchTeachers();
+          refetchDepartments();
+        }}
+      >
+        <RefreshCcw className="mr-2 h-4 w-4" /> Tentar novamente
+      </Button>
+    </div>
+  );
 
   return (
     <div className="animate-fade-in">
@@ -262,20 +305,10 @@ const Teachers = () => {
             <div className="flex justify-center items-center h-64">
               <LoadingSpinner />
             </div>
+          ) : fetchError ? (
+            renderErrorState()
           ) : teachers.length === 0 ? (
-            <div className="flex flex-col justify-center items-center h-64 text-center">
-              <School className="h-16 w-16 text-gray-300 mb-4" />
-              <p className="text-xl mb-2">Nenhum professor cadastrado</p>
-              <p className="text-gray-500 mb-4 max-w-sm">
-                Cadastre professores para criar escalas para as aulas da escola bíblica
-              </p>
-              <Button 
-                className="bg-worship-blue hover:bg-worship-blue/80"
-                onClick={openNewTeacherDialog}
-              >
-                <Plus className="mr-2 h-4 w-4" /> Adicionar Professor
-              </Button>
-            </div>
+            renderEmptyState()
           ) : (
             <Table>
               <TableHeader>

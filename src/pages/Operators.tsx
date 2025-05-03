@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Search, Headphones, Edit, Check } from "lucide-react";
+import { Plus, Search, Headphones, Edit, Check, X, RefreshCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -37,8 +38,9 @@ const Operators = () => {
   const { toast } = useToast();
   const [operators, setOperators] = useState<Operator[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const { currentDepartment, associateUserWithDepartment } = useDepartment();
+  const { currentDepartment, associateUserWithDepartment, refetchDepartments } = useDepartment();
 
   // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -59,14 +61,16 @@ const Operators = () => {
   const fetchOperators = async () => {
     try {
       setLoading(true);
+      setFetchError(null);
       
       // Early exit if no current department
       if (!currentDepartment) {
         setOperators([]);
+        setFetchError("Nenhum departamento selecionado. Por favor, selecione um departamento.");
         return;
       }
       
-      console.log("Operators: Fetching operators for department:", currentDepartment?.name);
+      console.log("Operators: Fetching operators for department:", currentDepartment?.name, currentDepartment?.id);
       
       // Fetch operators (users associated with current department)
       const { data: userDeptData, error } = await supabase
@@ -82,7 +86,10 @@ const Operators = () => {
         `)
         .eq('department_id', currentDepartment.id);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching user departments:", error);
+        throw error;
+      }
       
       console.log("Operators: Fetched user departments:", userDeptData);
       
@@ -93,6 +100,7 @@ const Operators = () => {
       setOperators(formattedOperators as Operator[]);
     } catch (error: any) {
       console.error("Erro ao buscar operadores:", error);
+      setFetchError(error.message || "Não foi possível carregar os operadores");
       toast({
         title: "Erro",
         description: "Não foi possível carregar os operadores",
@@ -229,6 +237,41 @@ const Operators = () => {
     }
   };
 
+  const renderEmptyState = () => (
+    <div className="flex flex-col justify-center items-center h-64 text-center">
+      <Headphones className="h-16 w-16 text-gray-300 mb-4" />
+      <p className="text-xl mb-2">Nenhum operador cadastrado</p>
+      <p className="text-gray-500 mb-4 max-w-sm">
+        Cadastre operadores para criar escalas de som e mídia
+      </p>
+      <Button 
+        className="bg-worship-purple hover:bg-worship-purple/80"
+        onClick={openNewOperatorDialog}
+      >
+        <Plus className="mr-2 h-4 w-4" /> Adicionar Operador
+      </Button>
+    </div>
+  );
+
+  const renderErrorState = () => (
+    <div className="flex flex-col justify-center items-center h-64 text-center">
+      <X className="h-16 w-16 text-red-400 mb-4" />
+      <p className="text-xl mb-2">Ocorreu um erro</p>
+      <p className="text-gray-500 mb-4 max-w-sm">
+        {fetchError || "Não foi possível carregar os operadores"}
+      </p>
+      <Button 
+        variant="outline"
+        onClick={() => {
+          fetchOperators();
+          refetchDepartments();
+        }}
+      >
+        <RefreshCcw className="mr-2 h-4 w-4" /> Tentar novamente
+      </Button>
+    </div>
+  );
+
   return (
     <div className="animate-fade-in">
       <h1 className="text-3xl font-bold mb-2">Operadores</h1>
@@ -260,20 +303,10 @@ const Operators = () => {
             <div className="flex justify-center items-center h-64">
               <LoadingSpinner />
             </div>
+          ) : fetchError ? (
+            renderErrorState()
           ) : operators.length === 0 ? (
-            <div className="flex flex-col justify-center items-center h-64 text-center">
-              <Headphones className="h-16 w-16 text-gray-300 mb-4" />
-              <p className="text-xl mb-2">Nenhum operador cadastrado</p>
-              <p className="text-gray-500 mb-4 max-w-sm">
-                Cadastre operadores para criar escalas de som e mídia
-              </p>
-              <Button 
-                className="bg-worship-purple hover:bg-worship-purple/80"
-                onClick={openNewOperatorDialog}
-              >
-                <Plus className="mr-2 h-4 w-4" /> Adicionar Operador
-              </Button>
-            </div>
+            renderEmptyState()
           ) : (
             <Table>
               <TableHeader>
