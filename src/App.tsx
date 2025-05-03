@@ -22,6 +22,7 @@ import EBDSchedules from "./pages/EBDSchedules";
 import Operators from "./pages/Operators";
 import SoundSchedules from "./pages/SoundSchedules";
 import Settings from "./pages/Settings";
+import Landing from "./pages/Landing";
 
 const App = () => {
   // Create a client
@@ -36,10 +37,11 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <Routes>
+                <Route path="/" element={<Landing />} />
                 <Route path="/auth" element={<Auth />} />
                 
                 <Route element={<ProtectedRoute />}>
-                  <Route path="/" element={<MainLayout />}>
+                  <Route path="/dashboard" element={<MainLayout />}>
                     <Route index element={<Index />} />
                     
                     {/* Louvor routes */}
