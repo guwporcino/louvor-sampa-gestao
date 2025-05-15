@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,7 +8,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import * as XLSX from 'xlsx';
 import { IncomeTransaction, ExpenseTransaction } from '@/types/financial';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 export const FinancialImport = () => {
   const [activeTab, setActiveTab] = useState('income');
@@ -171,8 +170,8 @@ export const FinancialImport = () => {
           throw new Error(`Data inválida: ${row.Data}`);
         }
         
-        // Create transaction object
-        const transaction: Partial<IncomeTransaction> = {
+        // Create transaction object with explicit non-optional properties
+        const transaction = {
           description: row.Descrição,
           amount: parseFloat(row.Valor),
           date: date.toISOString().split('T')[0],
@@ -283,8 +282,8 @@ export const FinancialImport = () => {
           throw new Error(`Data inválida: ${row.Vencimento}`);
         }
         
-        // Create transaction object
-        const transaction: Partial<ExpenseTransaction> = {
+        // Create transaction object with explicit non-optional properties
+        const transaction = {
           description: row.Descrição,
           amount: parseFloat(row.Valor),
           due_date: dueDate.toISOString().split('T')[0],

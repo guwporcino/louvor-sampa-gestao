@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Pencil, Trash2, Plus } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { LoadingSpinner } from '@/components/LoadingSpinner';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import { supabase } from '@/integrations/supabase/client';
 import { IncomeCategory } from '@/types/financial';
 import CategoryForm from './CategoryForm';
@@ -102,14 +102,24 @@ export const IncomeCategories = () => {
         // Update
         result = await supabase
           .from('income_categories')
-          .update(data)
+          .update({
+            name: data.name,
+            description: data.description,
+            active: data.active
+          })
           .eq('id', selectedCategory.id);
       } else {
-        // Insert
+        // Insert - ensure name is provided
+        if (!data.name) {
+          throw new Error("O nome da categoria é obrigatório");
+        }
+        
         result = await supabase
           .from('income_categories')
           .insert({
-            ...data,
+            name: data.name,
+            description: data.description,
+            active: data.active !== undefined ? data.active : true,
             type: 'income'
           });
       }
