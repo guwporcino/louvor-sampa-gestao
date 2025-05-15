@@ -24,6 +24,7 @@ import Operators from "./pages/Operators";
 import SoundSchedules from "./pages/SoundSchedules";
 import Settings from "./pages/Settings";
 import Financial from "./pages/Financial";
+import SocialProjects from "./pages/SocialProjects";
 
 const App = () => {
   // Create a client
@@ -77,6 +78,12 @@ const App = () => {
                     <Route path="escalas-som/:id" element={<SoundSchedules />} />
                     <Route path="escalas-som/novo" element={<SoundSchedules />} />
                     
+                    {/* Social Projects routes */}
+                    <Route path="projetos-sociais" element={<SocialProjects />} />
+                    <Route path="projetos-sociais/doacoes" element={<SocialProjects />} />
+                    <Route path="projetos-sociais/estoque" element={<SocialProjects />} />
+                    <Route path="projetos-sociais/escalas" element={<SocialProjects />} />
+                    
                     {/* Settings */}
                     <Route path="configuracoes" element={<Settings />} />
                     
@@ -86,6 +93,7 @@ const App = () => {
                 </Route>
                 
                 <Route path="/financeiro" element={<Financial />} />
+                <Route path="/projetos-sociais" element={<SocialProjects />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
