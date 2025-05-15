@@ -42,7 +42,7 @@ const DepartmentSelector = () => {
   return (
     <div className="px-4 py-2 mb-4">
       <Select
-        value={currentDepartment?.id}
+        value={currentDepartment?.id || "default"}
         onValueChange={handleDepartmentChange}
       >
         <SelectTrigger className="w-full bg-sidebar-accent/30 text-white">

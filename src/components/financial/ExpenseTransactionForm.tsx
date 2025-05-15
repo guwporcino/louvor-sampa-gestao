@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -50,7 +49,7 @@ const ExpenseTransactionForm = ({ transaction, onSubmit, onCancel }: ExpenseTran
       amount: transaction ? transaction.amount : 0,
       due_date: transaction?.due_date || format(new Date(), 'yyyy-MM-dd'),
       category_id: transaction?.category_id || '',
-      bank_account_id: transaction?.bank_account_id || '',
+      bank_account_id: transaction?.bank_account_id || null,
       is_paid: transaction?.is_paid ?? false,
       payment_date: transaction?.payment_date || undefined,
       notes: transaction?.notes || '',
@@ -241,7 +240,7 @@ const ExpenseTransactionForm = ({ transaction, onSubmit, onCancel }: ExpenseTran
               <FormLabel>Conta Bancária</FormLabel>
               <Select 
                 onValueChange={field.onChange} 
-                value={field.value || ''}
+                value={field.value || "none"}
                 disabled={loadingBankAccounts}
               >
                 <FormControl>
@@ -250,7 +249,7 @@ const ExpenseTransactionForm = ({ transaction, onSubmit, onCancel }: ExpenseTran
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">Nenhuma</SelectItem>
+                  <SelectItem value="none">Nenhuma</SelectItem>
                   {bankAccounts.map((account) => (
                     <SelectItem key={account.id} value={account.id}>
                       {account.name}
