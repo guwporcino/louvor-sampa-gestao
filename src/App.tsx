@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState } from "react";
 
 import MainLayout from "./layout/MainLayout";
+import Home from "./pages/Home";
 import Index from "./pages/Index";
 import Members from "./pages/Members";
 import Schedules from "./pages/Schedules";
@@ -38,9 +39,12 @@ const App = () => {
             <BrowserRouter>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/home" element={<Home />} />
                 
                 <Route element={<ProtectedRoute />}>
-                  <Route path="/" element={<MainLayout />}>
+                  <Route path="/" element={<Home />} />
+                  
+                  <Route path="/dashboard" element={<MainLayout />}>
                     <Route index element={<Index />} />
                     
                     {/* Louvor routes */}
@@ -73,17 +77,15 @@ const App = () => {
                     <Route path="escalas-som/:id" element={<SoundSchedules />} />
                     <Route path="escalas-som/novo" element={<SoundSchedules />} />
                     
-                    {/* Financeiro routes */}
-                    <Route path="financeiro" element={<Financial />} />
-                    
                     {/* Settings */}
                     <Route path="configuracoes" element={<Settings />} />
                     
                     {/* Louvor schedules redirect */}
-                    <Route path="escalas-louvor" element={<Navigate to="/escalas" replace />} />
+                    <Route path="escalas-louvor" element={<Navigate to="/dashboard/escalas" replace />} />
                   </Route>
                 </Route>
                 
+                <Route path="/financeiro" element={<Financial />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

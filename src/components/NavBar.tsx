@@ -1,8 +1,8 @@
 
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
-import { FileText, Music, Calendar, User, FileMusic, LogOut, BookOpen, Headphones, Settings } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarFooter } from "@/components/ui/sidebar";
+import { FileText, Music, Calendar, User, FileMusic, LogOut, BookOpen, Headphones, Settings, Home, DollarSign } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
@@ -11,6 +11,7 @@ import DepartmentSelector from "./DepartmentSelector";
 
 const NavBar: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const {
     user,
     profile,
@@ -19,7 +20,7 @@ const NavBar: React.FC = () => {
   const { currentDepartment, isAdmin } = useDepartment();
   
   const isActive = (path: string) => {
-    return location.pathname === path;
+    return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
   // Get user initials for avatar
@@ -38,17 +39,17 @@ const NavBar: React.FC = () => {
       case 'louvor':
         return [
           {
-            path: "/membros",
+            path: "/dashboard/membros",
             icon: <User className="mr-2 h-5 w-5" />,
             label: "Membros"
           },
           {
-            path: "/escalas",
+            path: "/dashboard/escalas",
             icon: <Calendar className="mr-2 h-5 w-5" />,
             label: "Escalas"
           },
           {
-            path: "/repertorio",
+            path: "/dashboard/repertorio",
             icon: <FileMusic className="mr-2 h-5 w-5" />,
             label: "Repertório"
           }
@@ -56,17 +57,17 @@ const NavBar: React.FC = () => {
       case 'escola bíblica':
         return [
           {
-            path: "/professores",
+            path: "/dashboard/professores",
             icon: <User className="mr-2 h-5 w-5" />,
             label: "Professores"
           },
           {
-            path: "/turmas",
+            path: "/dashboard/turmas",
             icon: <BookOpen className="mr-2 h-5 w-5" />,
             label: "Turmas"
           },
           {
-            path: "/escalas-ebd",
+            path: "/dashboard/escalas-ebd",
             icon: <Calendar className="mr-2 h-5 w-5" />,
             label: "Escalas"
           }
@@ -74,12 +75,12 @@ const NavBar: React.FC = () => {
       case 'sonoplastia':
         return [
           {
-            path: "/operadores",
+            path: "/dashboard/operadores",
             icon: <User className="mr-2 h-5 w-5" />,
             label: "Operadores"
           },
           {
-            path: "/escalas-som",
+            path: "/dashboard/escalas-som",
             icon: <Calendar className="mr-2 h-5 w-5" />,
             label: "Escalas"
           }
@@ -125,10 +126,29 @@ const NavBar: React.FC = () => {
           
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild className={isActive("/") ? "bg-sidebar-accent" : ""}>
-                <Link to="/" className="flex items-center">
+              <SidebarMenuButton 
+                onClick={() => navigate("/home")} 
+                className="flex items-center"
+              >
+                <Home className="mr-2 h-5 w-5" />
+                <span>Página Inicial</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild className={isActive("/dashboard") ? "bg-sidebar-accent" : ""}>
+                <Link to="/dashboard" className="flex items-center">
                   <FileText className="mr-2 h-5 w-5" />
                   <span>Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild className={isActive("/financeiro") ? "bg-sidebar-accent" : ""}>
+                <Link to="/financeiro" className="flex items-center">
+                  <DollarSign className="mr-2 h-5 w-5" />
+                  <span>Financeiro</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -146,15 +166,18 @@ const NavBar: React.FC = () => {
             
             {isAdmin(currentDepartment?.id || '') && (
               <SidebarMenuItem>
-                <SidebarMenuButton asChild className={isActive("/configuracoes") ? "bg-sidebar-accent" : ""}>
-                  <Link to="/configuracoes" className="flex items-center">
+                <SidebarMenuButton asChild className={isActive("/dashboard/configuracoes") ? "bg-sidebar-accent" : ""}>
+                  <Link to="/dashboard/configuracoes" className="flex items-center">
                     <Settings className="mr-2 h-5 w-5" />
                     <span>Configurações</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}
-            
+          </SidebarMenu>
+        </SidebarContent>
+        <SidebarFooter>
+          <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton onClick={signOut} className="text-red-400 hover:text-red-300 hover:bg-red-900/20">
                 <div className="flex items-center">
@@ -164,7 +187,7 @@ const NavBar: React.FC = () => {
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
-        </SidebarContent>
+        </SidebarFooter>
       </Sidebar>
       <div className="block lg:hidden fixed top-4 left-4 z-30">
         <SidebarTrigger />
