@@ -45,6 +45,42 @@ export type Database = {
           },
         ]
       }
+      bank_accounts: {
+        Row: {
+          account_number: string
+          account_type: string
+          active: boolean
+          agency: string
+          bank: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          account_number: string
+          account_type: string
+          active?: boolean
+          agency: string
+          bank: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          account_number?: string
+          account_type?: string
+          active?: boolean
+          agency?: string
+          bank?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string | null
@@ -128,6 +164,192 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      expense_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          type: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          type?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      expense_transactions: {
+        Row: {
+          amount: number
+          bank_account_id: string | null
+          category_id: string
+          created_at: string
+          created_by: string | null
+          description: string
+          document_url: string | null
+          due_date: string
+          id: string
+          is_paid: boolean
+          notes: string | null
+          payment_date: string | null
+          reference_number: string | null
+        }
+        Insert: {
+          amount: number
+          bank_account_id?: string | null
+          category_id: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          document_url?: string | null
+          due_date: string
+          id?: string
+          is_paid?: boolean
+          notes?: string | null
+          payment_date?: string | null
+          reference_number?: string | null
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string | null
+          category_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          document_url?: string | null
+          due_date?: string
+          id?: string
+          is_paid?: boolean
+          notes?: string | null
+          payment_date?: string | null
+          reference_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_transactions_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      income_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          type: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          type?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      income_transactions: {
+        Row: {
+          amount: number
+          bank_account_id: string | null
+          category_id: string
+          created_at: string
+          created_by: string | null
+          date: string
+          description: string
+          document_url: string | null
+          id: string
+          is_paid: boolean
+          notes: string | null
+          payment_date: string | null
+          reference_number: string | null
+        }
+        Insert: {
+          amount: number
+          bank_account_id?: string | null
+          category_id: string
+          created_at?: string
+          created_by?: string | null
+          date: string
+          description: string
+          document_url?: string | null
+          id?: string
+          is_paid?: boolean
+          notes?: string | null
+          payment_date?: string | null
+          reference_number?: string | null
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string | null
+          category_id?: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          description?: string
+          document_url?: string | null
+          id?: string
+          is_paid?: boolean
+          notes?: string | null
+          payment_date?: string | null
+          reference_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_transactions_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "income_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       member_categories: {
         Row: {

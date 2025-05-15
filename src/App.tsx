@@ -22,6 +22,7 @@ import EBDSchedules from "./pages/EBDSchedules";
 import Operators from "./pages/Operators";
 import SoundSchedules from "./pages/SoundSchedules";
 import Settings from "./pages/Settings";
+import Financial from "./pages/Financial";
 
 const App = () => {
   // Create a client
@@ -71,6 +72,9 @@ const App = () => {
                     <Route path="escalas-som" element={<SoundSchedules />} />
                     <Route path="escalas-som/:id" element={<SoundSchedules />} />
                     <Route path="escalas-som/novo" element={<SoundSchedules />} />
+                    
+                    {/* Financeiro routes */}
+                    <Route path="financeiro" element={<Financial />} />
                     
                     {/* Settings */}
                     <Route path="configuracoes" element={<Settings />} />
