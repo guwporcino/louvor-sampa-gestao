@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -6,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Pencil, Trash2, Plus, FileText, Search } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { LoadingSpinner } from '@/components/LoadingSpinner';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 import { ExpenseTransaction } from '@/types/financial';
@@ -148,16 +147,40 @@ export const ExpenseTransactions = () => {
       let result;
       
       if (selectedTransaction) {
-        // Update
+        // Update - only pass fields we want to update
         result = await supabase
           .from('expense_transactions')
-          .update(data)
+          .update({
+            description: data.description,
+            amount: data.amount,
+            due_date: data.due_date,
+            category_id: data.category_id,
+            bank_account_id: data.bank_account_id,
+            is_paid: data.is_paid,
+            payment_date: data.payment_date,
+            notes: data.notes,
+            reference_number: data.reference_number
+          })
           .eq('id', selectedTransaction.id);
       } else {
-        // Insert
+        // Insert - ensure required fields are present
+        if (!data.description || !data.amount || !data.due_date || !data.category_id) {
+          throw new Error("Todos os campos obrigatórios devem ser preenchidos");
+        }
+        
         result = await supabase
           .from('expense_transactions')
-          .insert(data);
+          .insert({
+            description: data.description,
+            amount: data.amount,
+            due_date: data.due_date,
+            category_id: data.category_id,
+            bank_account_id: data.bank_account_id,
+            is_paid: data.is_paid || false,
+            payment_date: data.payment_date,
+            notes: data.notes,
+            reference_number: data.reference_number
+          });
       }
 
       const { error } = result;

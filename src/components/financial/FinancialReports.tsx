@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +9,7 @@ import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/components/ui/use-toast';
 import { IncomeTransaction, ExpenseTransaction } from '@/types/financial';
 import { formatCurrency, formatDate } from '@/utils/formatters';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -83,13 +82,16 @@ export const FinancialReports = () => {
       
       if (expenseError) throw expenseError;
       
-      setIncomeData(income || []);
-      setExpenseData(expense || []);
+      setIncomeData(income as unknown as IncomeTransaction[]);
+      setExpenseData(expense as unknown as ExpenseTransaction[]);
       
       // Process data for charts
-      const incomeByCategory = processIncomeByCategory(income || []);
-      const expenseByCategory = processExpenseByCategory(expense || []);
-      const monthlyFinancialData = processMonthlyData(income || [], expense || []);
+      const incomeByCategory = processIncomeByCategory(income as unknown as IncomeTransaction[]);
+      const expenseByCategory = processExpenseByCategory(expense as unknown as ExpenseTransaction[]);
+      const monthlyFinancialData = processMonthlyData(
+        income as unknown as IncomeTransaction[], 
+        expense as unknown as ExpenseTransaction[]
+      );
       
       setIncomeByCategoryData(incomeByCategory);
       setExpenseByCategoryData(expenseByCategory);
@@ -204,8 +206,8 @@ export const FinancialReports = () => {
       .reduce((sum, item) => sum + Number(item.amount), 0);
     
     const pendingExpense = expenseData
-      .filter(item => !item.is_paid)
-      .reduce((sum, item => sum + Number(item.amount), 0));
+      .filter(item => item.is_paid)
+      .reduce((sum, item) => sum + Number(item.amount), 0);
     
     return {
       totalIncome,

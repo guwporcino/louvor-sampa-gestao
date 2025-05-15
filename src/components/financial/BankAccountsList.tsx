@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { BankAccount } from '@/types/financial';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash2, Plus } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { LoadingSpinner } from '@/components/LoadingSpinner';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import BankAccountForm from './BankAccountForm';
 
@@ -87,13 +86,31 @@ export const BankAccountsList = () => {
         // Update
         result = await supabase
           .from('bank_accounts')
-          .update(data)
+          .update({
+            name: data.name,
+            bank: data.bank,
+            agency: data.agency,
+            account_number: data.account_number,
+            account_type: data.account_type,
+            active: data.active
+          })
           .eq('id', selectedAccount.id);
       } else {
-        // Insert
+        // Insert - making sure required fields are present
+        if (!data.name || !data.bank || !data.agency || !data.account_number || !data.account_type) {
+          throw new Error("Todos os campos obrigatórios devem ser preenchidos");
+        }
+        
         result = await supabase
           .from('bank_accounts')
-          .insert(data);
+          .insert({
+            name: data.name,
+            bank: data.bank,
+            agency: data.agency,
+            account_number: data.account_number,
+            account_type: data.account_type,
+            active: data.active !== undefined ? data.active : true
+          });
       }
 
       const { error } = result;

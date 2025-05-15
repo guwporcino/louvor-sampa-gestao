@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { FileText, Download } from "lucide-react";
 import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import { useToast } from '@/components/ui/use-toast';
 import * as XLSX from 'xlsx';
 import { formatDate, formatCurrency } from '@/utils/formatters';
@@ -78,8 +79,8 @@ export const ExportData = ({ data, filename, title }: ExportDataProps) => {
           });
       });
 
-      // Create table
-      doc.autoTable({
+      // Create table using autoTable from jspdf-autotable
+      (doc as any).autoTable({
         head: [headers],
         body: rows,
         startY: 30,

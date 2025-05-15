@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
@@ -54,12 +53,15 @@ export const FinancialDashboard = () => {
       setTotalExpense(totalExp);
       
       // Preparar dados mensais
-      const monthlyStats = prepareMonthlyData(incomeData as IncomeTransaction[], expenseData as ExpenseTransaction[]);
+      const monthlyStats = prepareMonthlyData(
+        incomeData as unknown as IncomeTransaction[], 
+        expenseData as unknown as ExpenseTransaction[]
+      );
       setMonthlyData(monthlyStats);
       
       // Dados por categoria
-      const incomeByCategory = prepareIncomeByCategory(incomeData as IncomeTransaction[]);
-      const expenseByCategory = prepareExpenseByCategory(expenseData as ExpenseTransaction[]);
+      const incomeByCategory = prepareIncomeByCategory(incomeData as unknown as IncomeTransaction[]);
+      const expenseByCategory = prepareExpenseByCategory(expenseData as unknown as ExpenseTransaction[]);
       
       setIncomeByCategoryData(incomeByCategory);
       setExpenseByCategoryData(expenseByCategory);
