@@ -1,616 +1,369 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarIcon, FileText, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from '@/integrations/supabase/client';
-import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { useToast } from '@/components/ui/use-toast';
-import { IncomeTransaction, ExpenseTransaction } from '@/types/financial';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from '@/lib/utils';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  PieChart,
-  Pie,
-  Cell,
-} from 'recharts';
 import { ExportData } from './ExportData';
+import { IncomeTransaction, ExpenseTransaction } from '@/types/financial';
+import { FileText, Filter, LineChart, PieChart } from "lucide-react";
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer,
+  Pie,
+  Cell
+} from 'recharts';
+
+interface ReportFilter {
+  startDate: string;
+  endDate: string;
+  category: string;
+  bankAccount: string;
+}
 
 export const FinancialReports = () => {
-  const [startDate, setStartDate] = useState<Date>(startOfMonth(subMonths(new Date(), 1)));
-  const [endDate, setEndDate] = useState<Date>(endOfMonth(subMonths(new Date(), 0)));
-  const [loading, setLoading] = useState(false);
-  const [incomeData, setIncomeData] = useState<IncomeTransaction[]>([]);
-  const [expenseData, setExpenseData] = useState<ExpenseTransaction[]>([]);
-  const [incomeByCategoryData, setIncomeByCategoryData] = useState<any[]>([]);
-  const [expenseByCategoryData, setExpenseByCategoryData] = useState<any[]>([]);
-  const [monthlyData, setMonthlyData] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState('general');
-  const { toast } = useToast();
+  const [filter, setFilter] = useState<ReportFilter>({
+    startDate: '',
+    endDate: '',
+    category: '',
+    bankAccount: '',
+  });
+  const [incomeTransactions, setIncomeTransactions] = useState<IncomeTransaction[]>([]);
+  const [expenseTransactions, setExpenseTransactions] = useState<ExpenseTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+  const [reportType, setReportType] = useState('table'); // 'table' | 'chart'
+  const [chartType, setChartType] = useState('bar'); // 'bar' | 'pie'
 
-  const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
-  
   useEffect(() => {
-    fetchReportData();
+    fetchData();
+    fetchCategories();
+    fetchBankAccounts();
   }, []);
 
-  const fetchReportData = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      
-      const formattedStartDate = format(startDate, 'yyyy-MM-dd');
-      const formattedEndDate = format(endDate, 'yyyy-MM-dd');
-
-      // Fetch income data
-      const { data: income, error: incomeError } = await supabase
+      const { data: incomeData, error: incomeError } = await supabase
         .from('income_transactions')
         .select(`
           *,
           category:category_id(*),
           bank_account:bank_account_id(*)
         `)
-        .gte('date', formattedStartDate)
-        .lte('date', formattedEndDate)
-        .order('date', { ascending: false });
-      
+        .gte('date', filter.startDate || '1970-01-01')
+        .lte('date', filter.endDate || '2100-01-01');
+
       if (incomeError) throw incomeError;
-      
-      // Fetch expense data
-      const { data: expense, error: expenseError } = await supabase
+      setIncomeTransactions(incomeData || []);
+
+      const { data: expenseData, error: expenseError } = await supabase
         .from('expense_transactions')
         .select(`
           *,
           category:category_id(*),
           bank_account:bank_account_id(*)
         `)
-        .gte('due_date', formattedStartDate)
-        .lte('due_date', formattedEndDate)
-        .order('due_date', { ascending: false });
-      
+        .gte('due_date', filter.startDate || '1970-01-01')
+        .lte('due_date', filter.endDate || '2100-01-01');
+
       if (expenseError) throw expenseError;
-      
-      setIncomeData(income as unknown as IncomeTransaction[]);
-      setExpenseData(expense as unknown as ExpenseTransaction[]);
-      
-      // Process data for charts
-      const incomeByCategory = processIncomeByCategory(income as unknown as IncomeTransaction[]);
-      const expenseByCategory = processExpenseByCategory(expense as unknown as ExpenseTransaction[]);
-      const monthlyFinancialData = processMonthlyData(
-        income as unknown as IncomeTransaction[], 
-        expense as unknown as ExpenseTransaction[]
-      );
-      
-      setIncomeByCategoryData(incomeByCategory);
-      setExpenseByCategoryData(expenseByCategory);
-      setMonthlyData(monthlyFinancialData);
-      
+      setExpenseTransactions(expenseData || []);
     } catch (error: any) {
-      toast({
-        title: 'Erro ao carregar dados do relatório',
-        description: error.message,
-        variant: 'destructive',
-      });
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
   };
-  
-  const processIncomeByCategory = (data: IncomeTransaction[]) => {
-    const categoryMap = new Map();
-    
-    data.forEach(item => {
-      const categoryName = item.category?.name || 'Sem categoria';
-      const currentAmount = categoryMap.get(categoryName) || 0;
-      categoryMap.set(categoryName, currentAmount + Number(item.amount));
-    });
-    
-    return Array.from(categoryMap.entries()).map(([name, value]) => ({
-      name,
-      value
-    }));
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('income_categories')
+        .select('*');
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error: any) {
+      console.error("Error fetching categories:", error);
+    }
   };
-  
-  const processExpenseByCategory = (data: ExpenseTransaction[]) => {
-    const categoryMap = new Map();
-    
-    data.forEach(item => {
-      const categoryName = item.category?.name || 'Sem categoria';
-      const currentAmount = categoryMap.get(categoryName) || 0;
-      categoryMap.set(categoryName, currentAmount + Number(item.amount));
-    });
-    
-    return Array.from(categoryMap.entries()).map(([name, value]) => ({
-      name,
-      value
-    }));
+
+  const fetchBankAccounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('bank_accounts')
+        .select('*');
+
+      if (error) throw error;
+      setBankAccounts(data || []);
+    } catch (error: any) {
+      console.error("Error fetching bank accounts:", error);
+    }
   };
-  
-  const processMonthlyData = (incomeData: IncomeTransaction[], expenseData: ExpenseTransaction[]) => {
-    const monthlyMap = new Map();
-    
-    // Process income
-    incomeData.forEach(item => {
-      const date = new Date(item.date);
-      const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
-      const monthLabel = format(date, 'MMM/yy', { locale: ptBR });
-      
-      if (!monthlyMap.has(monthKey)) {
-        monthlyMap.set(monthKey, { 
-          key: monthKey,
-          name: monthLabel,
-          income: 0,
-          expense: 0
-        });
-      }
-      
-      const monthData = monthlyMap.get(monthKey);
-      monthData.income += Number(item.amount);
-    });
-    
-    // Process expenses
-    expenseData.forEach(item => {
-      const date = new Date(item.due_date);
-      const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
-      const monthLabel = format(date, 'MMM/yy', { locale: ptBR });
-      
-      if (!monthlyMap.has(monthKey)) {
-        monthlyMap.set(monthKey, { 
-          key: monthKey,
-          name: monthLabel,
-          income: 0,
-          expense: 0
-        });
-      }
-      
-      const monthData = monthlyMap.get(monthKey);
-      monthData.expense += Number(item.amount);
-    });
-    
-    // Convert to array and sort by month
-    return Array.from(monthlyMap.values())
-      .sort((a, b) => a.key.localeCompare(b.key))
-      .map(item => ({
-        ...item,
-        balance: item.income - item.expense
+
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFilter(prev => ({ ...prev, [name]: value }));
+  };
+
+  const applyFilters = () => {
+    fetchData();
+  };
+
+  const totalIncome = incomeTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+  const totalExpenses = expenseTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+  const balance = totalIncome - totalExpenses;
+
+  // Prepare chart data
+  const chartData = () => {
+    if (chartType === 'bar') {
+      const incomeByCategory: { [key: string]: number } = {};
+      incomeTransactions.forEach(transaction => {
+        const categoryName = transaction.category?.name || 'Sem Categoria';
+        incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + transaction.amount;
+      });
+
+      const expenseByCategory: { [key: string]: number } = {};
+      expenseTransactions.forEach(transaction => {
+        const categoryName = transaction.category?.name || 'Sem Categoria';
+        expenseByCategory[categoryName] = (expenseByCategory[categoryName] || 0) + transaction.amount;
+      });
+
+      const barData = Object.keys(incomeByCategory).map(category => ({
+        name: category,
+        Receitas: incomeByCategory[category],
+        Despesas: expenseByCategory[category] || 0,
       }));
+      
+      return barData;
+    } else if (chartType === 'pie') {
+      const totalIncome = incomeTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+      const totalExpenses = expenseTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+      
+      return [
+        { name: 'Receitas', value: totalIncome },
+        { name: 'Despesas', value: totalExpenses },
+      ];
+    }
+    return [];
   };
 
-  const generateSummary = () => {
-    const totalIncome = incomeData.reduce((sum, item) => sum + Number(item.amount), 0);
-    const totalExpense = expenseData.reduce((sum, item) => sum + Number(item.amount), 0);
-    const balance = totalIncome - totalExpense;
-    
-    const paidIncome = incomeData
-      .filter(item => item.is_paid)
-      .reduce((sum, item) => sum + Number(item.amount), 0);
-    
-    const pendingIncome = incomeData
-      .filter(item => !item.is_paid)
-      .reduce((sum, item) => sum + Number(item.amount), 0);
-    
-    const paidExpense = expenseData
-      .filter(item => item.is_paid)
-      .reduce((sum, item) => sum + Number(item.amount), 0);
-    
-    const pendingExpense = expenseData
-      .filter(item => item.is_paid)
-      .reduce((sum, item) => sum + Number(item.amount), 0);
-    
-    return {
-      totalIncome,
-      totalExpense,
-      balance,
-      paidIncome,
-      pendingIncome,
-      paidExpense,
-      pendingExpense
-    };
-  };
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
-  const handleGenerateReport = () => {
-    fetchReportData();
-  };
-  
-  const summary = generateSummary();
+  if (loading) {
+    return <LoadingSpinner />;
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-xl font-medium">Relatórios Financeiros</h3>
+        <ExportData 
+          data={[...incomeTransactions, ...expenseTransactions]} 
+          filename="relatorio-financeiro" 
+          title="Exportar Relatório" 
+        />
+      </div>
+
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle>Período do Relatório</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="grid gap-2">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Data Inicial:</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-[240px] justify-start text-left font-normal",
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(startDate, "dd/MM/yyyy", { locale: ptBR })}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={startDate}
-                      onSelect={(date) => date && setStartDate(date)}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+        <CardContent className="p-4">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-4">
+            <div>
+              <Label htmlFor="startDate">Data Inicial</Label>
+              <Input type="date" id="startDate" name="startDate" onChange={handleFilterChange} />
             </div>
-
-            <div className="grid gap-2">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Data Final:</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-[240px] justify-start text-left font-normal",
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(endDate, "dd/MM/yyyy", { locale: ptBR })}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={endDate}
-                      onSelect={(date) => date && setEndDate(date)}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+            <div>
+              <Label htmlFor="endDate">Data Final</Label>
+              <Input type="date" id="endDate" name="endDate" onChange={handleFilterChange} />
             </div>
-
-            <div className="flex items-end">
-              <Button onClick={handleGenerateReport}>
-                <FileText className="mr-2 h-4 w-4" />
-                Gerar Relatório
-              </Button>
+            <div>
+              <Label htmlFor="category">Categoria</Label>
+              <Select name="category" onValueChange={(value) => setFilter(prev => ({ ...prev, category: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todas</SelectItem>
+                  {categories.map(category => (
+                    <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="bankAccount">Conta Bancária</Label>
+              <Select name="bankAccount" onValueChange={(value) => setFilter(prev => ({ ...prev, bankAccount: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todas</SelectItem>
+                  {bankAccounts.map(account => (
+                    <SelectItem key={account.id} value={account.id}>{account.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
+          <Button className="mt-4" onClick={applyFilters}>
+            <Filter className="mr-2 h-4 w-4" /> Aplicar Filtros
+          </Button>
         </CardContent>
       </Card>
 
-      {loading ? (
-        <LoadingSpinner />
-      ) : (
-        <>
-          <div className="flex justify-between items-center">
-            <div className="text-xl font-medium">
-              Período: {format(startDate, "dd/MM/yyyy", { locale: ptBR })} a {format(endDate, "dd/MM/yyyy", { locale: ptBR })}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => window.print()}>
-                <Download className="mr-2 h-4 w-4" /> Imprimir
-              </Button>
-              <ExportData 
-                data={[...incomeData, ...expenseData]} 
-                filename="relatorio_financeiro" 
-                title="Exportar Relatório" 
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className={summary.balance >= 0 ? "border-green-500" : "border-red-500"}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Saldo do Período</CardTitle>
+      <Tabs defaultValue="visao-geral" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
+          <TabsTrigger value="tabela">Tabela</TabsTrigger>
+          <TabsTrigger value="graficos">Gráficos</TabsTrigger>
+        </TabsList>
+        <TabsContent value="visao-geral" className="space-y-4">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+            <Card>
+              <CardHeader>
+                <CardTitle>Total de Receitas</CardTitle>
+                <CardDescription>Todas as receitas no período</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className={`text-2xl font-bold ${summary.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(summary.balance)}
-                </div>
+                <div className="text-2xl font-bold">{formatCurrency(totalIncome)}</div>
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Total de Receitas</CardTitle>
+              <CardHeader>
+                <CardTitle>Total de Despesas</CardTitle>
+                <CardDescription>Todas as despesas no período</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">
-                  {formatCurrency(summary.totalIncome)}
-                </div>
+                <div className="text-2xl font-bold">{formatCurrency(totalExpenses)}</div>
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Total de Despesas</CardTitle>
+              <CardHeader>
+                <CardTitle>Saldo</CardTitle>
+                <CardDescription>Receitas - Despesas</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">
-                  {formatCurrency(summary.totalExpense)}
+                <div className={balance >= 0 ? "text-green-500 text-2xl font-bold" : "text-red-500 text-2xl font-bold"}>
+                  {formatCurrency(balance)}
                 </div>
               </CardContent>
             </Card>
           </div>
-
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="general">Gráficos</TabsTrigger>
-              <TabsTrigger value="income">Receitas</TabsTrigger>
-              <TabsTrigger value="expense">Despesas</TabsTrigger>
-              <TabsTrigger value="monthly">Mensal</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="general">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Receitas por Categoria</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {incomeByCategoryData.length > 0 ? (
-                      <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={incomeByCategoryData}
-                              cx="50%"
-                              cy="50%"
-                              labelLine={true}
-                              outerRadius={80}
-                              fill="#8884d8"
-                              dataKey="value"
-                              label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                            >
-                              {incomeByCategoryData.map((entry, index) => (
-                                <Cell key={`income-cell-${index}`} fill={colors[index % colors.length]} />
-                              ))}
-                            </Pie>
-                            <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                    ) : (
-                      <div className="flex justify-center items-center h-[300px]">
-                        <p className="text-muted-foreground">Nenhuma receita no período selecionado</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Despesas por Categoria</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {expenseByCategoryData.length > 0 ? (
-                      <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={expenseByCategoryData}
-                              cx="50%"
-                              cy="50%"
-                              labelLine={true}
-                              outerRadius={80}
-                              fill="#8884d8"
-                              dataKey="value"
-                              label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                            >
-                              {expenseByCategoryData.map((entry, index) => (
-                                <Cell key={`expense-cell-${index}`} fill={colors[index % colors.length]} />
-                              ))}
-                            </Pie>
-                            <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                    ) : (
-                      <div className="flex justify-center items-center h-[300px]">
-                        <p className="text-muted-foreground">Nenhuma despesa no período selecionado</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+        </TabsContent>
+        <TabsContent value="tabela" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Transações</CardTitle>
+              <CardDescription>Lista de todas as transações</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead>Conta</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {incomeTransactions.map(transaction => (
+                    <TableRow key={transaction.id}>
+                      <TableCell>{transaction.description}</TableCell>
+                      <TableCell>{formatDate(transaction.date)}</TableCell>
+                      <TableCell>{formatCurrency(transaction.amount)}</TableCell>
+                      <TableCell>Receita</TableCell>
+                      <TableCell>{transaction.category?.name}</TableCell>
+                      <TableCell>{transaction.bank_account?.name}</TableCell>
+                    </TableRow>
+                  ))}
+                  {expenseTransactions.map(transaction => (
+                    <TableRow key={transaction.id}>
+                      <TableCell>{transaction.description}</TableCell>
+                      <TableCell>{formatDate(transaction.due_date)}</TableCell>
+                      <TableCell>{formatCurrency(transaction.amount)}</TableCell>
+                      <TableCell>Despesa</TableCell>
+                      <TableCell>{transaction.category?.name}</TableCell>
+                      <TableCell>{transaction.bank_account?.name}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="graficos" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Gráficos</CardTitle>
+              <CardDescription>Visualização de dados em gráficos</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-end mb-4">
+                <Select value={chartType} onValueChange={(value) => setChartType(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tipo de Gráfico" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bar">Barras</SelectItem>
+                    <SelectItem value="pie">Pizza</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle>Receitas e Despesas por Mês</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {monthlyData.length > 0 ? (
-                    <div className="h-[300px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={monthlyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis />
-                          <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                          <Legend />
-                          <Bar dataKey="income" name="Receitas" fill="#4ade80" />
-                          <Bar dataKey="expense" name="Despesas" fill="#f87171" />
-                          <Bar dataKey="balance" name="Saldo" fill="#60a5fa" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  ) : (
-                    <div className="flex justify-center items-center h-[300px]">
-                      <p className="text-muted-foreground">Nenhum dado para o período selecionado</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="income">
-              <Card className="mt-6">
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle>Receitas do Período</CardTitle>
-                    <ExportData 
-                      data={incomeData} 
-                      filename="receitas_relatorio" 
-                      title="Receitas" 
-                    />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {incomeData.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Data</TableHead>
-                          <TableHead>Descrição</TableHead>
-                          <TableHead>Categoria</TableHead>
-                          <TableHead>Valor</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {incomeData.map((item) => (
-                          <TableRow key={item.id}>
-                            <TableCell>{formatDate(item.date)}</TableCell>
-                            <TableCell>{item.description}</TableCell>
-                            <TableCell>{item.category?.name}</TableCell>
-                            <TableCell>{formatCurrency(item.amount)}</TableCell>
-                            <TableCell>
-                              {item.is_paid ? "Recebido" : "A receber"}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <div className="flex justify-center items-center py-8">
-                      <p className="text-muted-foreground">Nenhuma receita no período selecionado</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="expense">
-              <Card className="mt-6">
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle>Despesas do Período</CardTitle>
-                    <ExportData 
-                      data={expenseData} 
-                      filename="despesas_relatorio" 
-                      title="Despesas" 
-                    />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {expenseData.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Vencimento</TableHead>
-                          <TableHead>Descrição</TableHead>
-                          <TableHead>Categoria</TableHead>
-                          <TableHead>Valor</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {expenseData.map((item) => (
-                          <TableRow key={item.id}>
-                            <TableCell>{formatDate(item.due_date)}</TableCell>
-                            <TableCell>{item.description}</TableCell>
-                            <TableCell>{item.category?.name}</TableCell>
-                            <TableCell>{formatCurrency(item.amount)}</TableCell>
-                            <TableCell>
-                              {item.is_paid ? "Pago" : "A pagar"}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <div className="flex justify-center items-center py-8">
-                      <p className="text-muted-foreground">Nenhuma despesa no período selecionado</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="monthly">
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle>Resumo Mensal</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {monthlyData.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Mês</TableHead>
-                          <TableHead>Receitas</TableHead>
-                          <TableHead>Despesas</TableHead>
-                          <TableHead>Saldo</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {monthlyData.map((item) => (
-                          <TableRow key={item.key}>
-                            <TableCell>{item.name}</TableCell>
-                            <TableCell className="text-green-600">
-                              {formatCurrency(item.income)}
-                            </TableCell>
-                            <TableCell className="text-red-600">
-                              {formatCurrency(item.expense)}
-                            </TableCell>
-                            <TableCell className={item.balance >= 0 ? "text-green-600" : "text-red-600"}>
-                              {formatCurrency(item.balance)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                        <TableRow className="font-bold">
-                          <TableCell>TOTAL</TableCell>
-                          <TableCell className="text-green-600">
-                            {formatCurrency(summary.totalIncome)}
-                          </TableCell>
-                          <TableCell className="text-red-600">
-                            {formatCurrency(summary.totalExpense)}
-                          </TableCell>
-                          <TableCell className={summary.balance >= 0 ? "text-green-600" : "text-red-600"}>
-                            {formatCurrency(summary.balance)}
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <div className="flex justify-center items-center py-8">
-                      <p className="text-muted-foreground">Nenhum dado para o período selecionado</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </>
-      )}
+              {chartType === 'bar' && (
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart data={chartData()}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="Receitas" fill="#82ca9d" />
+                    <Bar dataKey="Despesas" fill="#8884d8" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+              {chartType === 'pie' && (
+                <ResponsiveContainer width="100%" height={400}>
+                  <PieChart>
+                    <Pie
+                      data={chartData()}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={160}
+                      fill="#8884d8"
+                      label
+                    >
+                      {chartData().map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

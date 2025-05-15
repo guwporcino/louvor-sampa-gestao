@@ -1,306 +1,222 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { ArrowUpRight, ArrowDownRight, DollarSign, Wallet, PieChart as PieChartIcon, BarChart as BarChartIcon } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
-import { formatCurrency } from '@/utils/formatters';
-import { Skeleton } from "@/components/ui/skeleton";
-import { PieChart, Pie, Cell } from 'recharts';
+import { formatCurrency, formatDate } from '@/utils/formatters';
 import { IncomeTransaction, ExpenseTransaction } from '@/types/financial';
+import LoadingSpinner from '@/components/LoadingSpinner';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 export const FinancialDashboard = () => {
+  const [income, setIncome] = useState<IncomeTransaction[]>([]);
+  const [expenses, setExpenses] = useState<ExpenseTransaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [totalIncome, setTotalIncome] = useState(0);
-  const [totalExpense, setTotalExpense] = useState(0);
-  const [monthlyData, setMonthlyData] = useState<any[]>([]);
-  const [incomeByCategoryData, setIncomeByCategoryData] = useState<any[]>([]);
-  const [expenseByCategoryData, setExpenseByCategoryData] = useState<any[]>([]);
 
-  const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
-  
   useEffect(() => {
-    const loadData = async () => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
       setLoading(true);
-      
-      // Carregar dados de receitas
+
       const { data: incomeData, error: incomeError } = await supabase
         .from('income_transactions')
-        .select(`
-          *,
-          category:category_id(name)
-        `)
-        .gte('date', new Date(new Date().setMonth(new Date().getMonth() - 6)).toISOString());
-      
-      // Carregar dados de despesas
-      const { data: expenseData, error: expenseError } = await supabase
+        .select('*');
+
+      if (incomeError) throw incomeError;
+
+      const { data: expensesData, error: expensesError } = await supabase
         .from('expense_transactions')
-        .select(`
-          *,
-          category:category_id(name)
-        `)
-        .gte('due_date', new Date(new Date().setMonth(new Date().getMonth() - 6)).toISOString());
-      
-      if (incomeError || expenseError) {
-        console.error('Erro ao carregar dados:', incomeError || expenseError);
-        setLoading(false);
-        return;
-      }
-      
-      // Calcular totais
-      const totalInc = incomeData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
-      const totalExp = expenseData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
-      
-      setTotalIncome(totalInc);
-      setTotalExpense(totalExp);
-      
-      // Preparar dados mensais
-      const monthlyStats = prepareMonthlyData(
-        incomeData as unknown as IncomeTransaction[], 
-        expenseData as unknown as ExpenseTransaction[]
-      );
-      setMonthlyData(monthlyStats);
-      
-      // Dados por categoria
-      const incomeByCategory = prepareIncomeByCategory(incomeData as unknown as IncomeTransaction[]);
-      const expenseByCategory = prepareExpenseByCategory(expenseData as unknown as ExpenseTransaction[]);
-      
-      setIncomeByCategoryData(incomeByCategory);
-      setExpenseByCategoryData(expenseByCategory);
-      
+        .select('*');
+
+      if (expensesError) throw expensesError;
+
+      setIncome(incomeData || []);
+      setExpenses(expensesData || []);
+    } catch (error: any) {
+      console.error("Erro ao carregar dados:", error.message);
+    } finally {
       setLoading(false);
-    };
-    
-    loadData();
-  }, []);
-  
-  const prepareMonthlyData = (incomeData: IncomeTransaction[], expenseData: ExpenseTransaction[]) => {
-    const months = Array.from({ length: 6 }, (_, i) => {
-      const date = new Date();
-      date.setMonth(date.getMonth() - i);
-      return {
-        month: date.toLocaleString('pt-BR', { month: 'short' }),
-        year: date.getFullYear(),
-        date: date
-      };
-    }).reverse();
-    
-    return months.map(monthItem => {
-      const monthIncome = incomeData
-        .filter(item => {
-          const itemDate = new Date(item.date);
-          return itemDate.getMonth() === monthItem.date.getMonth() && 
-                 itemDate.getFullYear() === monthItem.date.getFullYear();
-        })
-        .reduce((sum, item) => sum + Number(item.amount), 0);
-        
-      const monthExpense = expenseData
-        .filter(item => {
-          const itemDate = new Date(item.due_date);
-          return itemDate.getMonth() === monthItem.date.getMonth() && 
-                 itemDate.getFullYear() === monthItem.date.getFullYear();
-        })
-        .reduce((sum, item) => sum + Number(item.amount), 0);
-        
-      return {
-        name: `${monthItem.month}/${monthItem.year.toString().substr(2, 2)}`,
-        receitas: monthIncome,
-        despesas: monthExpense,
-        saldo: monthIncome - monthExpense
-      };
-    });
+    }
   };
-  
-  const prepareIncomeByCategory = (incomeData: IncomeTransaction[]) => {
-    const categoryMap = new Map();
-    
-    incomeData.forEach(item => {
-      const categoryName = item.category?.name || 'Sem categoria';
-      const currentAmount = categoryMap.get(categoryName) || 0;
-      categoryMap.set(categoryName, currentAmount + Number(item.amount));
-    });
-    
-    return Array.from(categoryMap.entries()).map(([name, value]) => ({
-      name,
-      value
-    }));
-  };
-  
-  const prepareExpenseByCategory = (expenseData: ExpenseTransaction[]) => {
-    const categoryMap = new Map();
-    
-    expenseData.forEach(item => {
-      const categoryName = item.category?.name || 'Sem categoria';
-      const currentAmount = categoryMap.get(categoryName) || 0;
-      categoryMap.set(categoryName, currentAmount + Number(item.amount));
-    });
-    
-    return Array.from(categoryMap.entries()).map(([name, value]) => ({
-      name,
-      value
-    }));
-  };
-  
+
+  // Calculate total income and expenses
+  const totalIncome = income.reduce((sum, transaction) => sum + transaction.amount, 0);
+  const totalExpenses = expenses.reduce((sum, transaction) => sum + transaction.amount, 0);
+  const netBalance = totalIncome - totalExpenses;
+
+  // Prepare data for charts
+  const incomeByCategory = income.reduce((acc: any, transaction) => {
+    const categoryName = transaction.category_id || 'Sem Categoria';
+    acc[categoryName] = (acc[categoryName] || 0) + transaction.amount;
+    return acc;
+  }, {});
+
+  const expensesByCategory = expenses.reduce((acc: any, transaction) => {
+    const categoryName = transaction.category_id || 'Sem Categoria';
+    acc[categoryName] = (acc[categoryName] || 0) + transaction.amount;
+    return acc;
+  }, {});
+
+  const incomeChartData = Object.entries(incomeByCategory).map(([category, amount]) => ({
+    name: category,
+    value: amount as number,
+  }));
+
+  const expensesChartData = Object.entries(expensesByCategory).map(([category, amount]) => ({
+    name: category,
+    value: amount as number,
+  }));
+
   if (loading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Carregando...
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-16 w-full" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Carregando...
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-16 w-full" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Carregando...
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-16 w-full" />
-          </CardContent>
-        </Card>
-        <Skeleton className="h-[300px] w-full col-span-3" />
-      </div>
-    );
+    return <LoadingSpinner />;
   }
-  
+
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-xl font-medium">Dashboard Financeiro</h3>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total de Receitas
-            </CardTitle>
+          <CardHeader>
+            <CardTitle>Receita Total</CardTitle>
+            <CardDescription>Todas as receitas</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(totalIncome)}
+            <div className="text-2xl font-bold">{formatCurrency(totalIncome)}</div>
+            <div className="flex items-center text-sm text-muted-foreground">
+              <ArrowUpRight className="h-4 w-4 mr-2 text-green-500" />
+              {/* <span>{formatCurrency(incomePercentageChange)}</span> */}
             </div>
           </CardContent>
         </Card>
+
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total de Despesas
-            </CardTitle>
+          <CardHeader>
+            <CardTitle>Despesa Total</CardTitle>
+            <CardDescription>Todas as despesas</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(totalExpense)}
+            <div className="text-2xl font-bold">{formatCurrency(totalExpenses)}</div>
+            <div className="flex items-center text-sm text-muted-foreground">
+              <ArrowDownRight className="h-4 w-4 mr-2 text-red-500" />
+              {/* <span>{formatCurrency(expensePercentageChange)}</span> */}
             </div>
           </CardContent>
         </Card>
+
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Saldo do Período
-            </CardTitle>
+          <CardHeader>
+            <CardTitle>Saldo Líquido</CardTitle>
+            <CardDescription>Receitas - Despesas</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${(totalIncome - totalExpense) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {formatCurrency(totalIncome - totalExpense)}
+            <div className="text-2xl font-bold">{formatCurrency(netBalance)}</div>
+            <div className="flex items-center text-sm text-muted-foreground">
+              <DollarSign className="h-4 w-4 mr-2" />
+              {/* <span>{formatCurrency(netBalancePercentageChange)}</span> */}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Contas a Pagar</CardTitle>
+            <CardDescription>Total pendente</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(expenses.filter(e => !e.is_paid).reduce((sum, transaction) => sum + transaction.amount, 0))}</div>
+            <div className="flex items-center text-sm text-muted-foreground">
+              <Wallet className="h-4 w-4 mr-2" />
+              {/* <span>{formatCurrency(pendingBalancePercentageChange)}</span> */}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Gráfico de receitas e despesas por mês */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Receitas e Despesas (Últimos 6 meses)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                <Legend />
-                <Bar dataKey="receitas" fill="#4ade80" name="Receitas" />
-                <Bar dataKey="despesas" fill="#f87171" name="Despesas" />
-              </BarChart>
-            </ResponsiveContainer>
+      <Tabs defaultValue="visao-geral" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="visao-geral"><PieChartIcon className="h-4 w-4 mr-2" /> Visão Geral</TabsTrigger>
+          <TabsTrigger value="relatorios"><BarChartIcon className="h-4 w-4 mr-2" /> Relatórios</TabsTrigger>
+        </TabsList>
+        <TabsContent value="visao-geral" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Receitas por Categoria</CardTitle>
+                <CardDescription>Distribuição das receitas por categoria</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={incomeChartData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      fill="#8884d8"
+                      label
+                    >
+                      {
+                        incomeChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))
+                      }
+                    </Pie>
+                    <Tooltip formatter={(value: any) => formatCurrency(value)} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Despesas por Categoria</CardTitle>
+                <CardDescription>Distribuição das despesas por categoria</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={expensesChartData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      fill="#82ca9d"
+                      label
+                    >
+                      {
+                        expensesChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))
+                      }
+                    </Pie>
+                    <Tooltip formatter={(value: any) => formatCurrency(value)} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Gráfico de receitas por categoria */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Receitas por Categoria</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={incomeByCategoryData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={true}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {incomeByCategoryData.map((entry, index) => (
-                      <Cell key={`income-cell-${index}`} fill={colors[index % colors.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Gráfico de despesas por categoria */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Despesas por Categoria</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={expenseByCategoryData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={true}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {expenseByCategoryData.map((entry, index) => (
-                      <Cell key={`expense-cell-${index}`} fill={colors[index % colors.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        </TabsContent>
+        <TabsContent value="relatorios">
+          <div>Em construção...</div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
