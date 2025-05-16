@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shirt, Gift, Box, Users } from 'lucide-react';
+import { Shirt, Gift, Box, Users, Calendar as CalendarIcon, Tag as TagIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
@@ -123,11 +123,11 @@ const SocialDashboard = () => {
                 Atualizar estoque
               </Button>
               <Button className="w-full" variant="outline">
-                <Calendar className="mr-2 h-4 w-4" />
+                <CalendarIcon className="mr-2 h-4 w-4" />
                 Criar nova escala
               </Button>
               <Button className="w-full" variant="outline">
-                <Tag className="mr-2 h-4 w-4" />
+                <TagIcon className="mr-2 h-4 w-4" />
                 Adicionar categoria
               </Button>
             </div>

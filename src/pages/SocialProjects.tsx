@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Archive, Box, Calendar, Shirt, Tag, Truck } from 'lucide-react';
+import { Archive, Box, Calendar as CalendarIcon, Shirt, Tag as TagIcon, Truck } from 'lucide-react';
 import DonationsList from '@/components/social/DonationsList';
 import InventoryManagement from '@/components/social/InventoryManagement';
 import SocialSchedules from '@/components/social/SocialSchedules';
@@ -44,7 +44,7 @@ const SocialProjects = () => {
             <span className="hidden sm:inline">Estoque</span>
           </TabsTrigger>
           <TabsTrigger value="schedules" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
+            <CalendarIcon className="h-4 w-4" />
             <span className="hidden sm:inline">Escalas</span>
           </TabsTrigger>
         </TabsList>
