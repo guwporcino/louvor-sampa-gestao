@@ -19,6 +19,10 @@ export default {
       }
     },
     extend: {
+      fontFamily: {
+        serif: ['Playfair Display', 'serif'],
+        sans: ['Inter', 'sans-serif'],
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -63,12 +67,14 @@ export default {
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))'
         },
-        worship: {
-          blue: '#1A365D',
-          purple: '#553C9A',
-          gold: '#F6AD55',
-          lightBlue: '#63B3ED',
-          lightGray: '#F7FAFC',
+        divinus: {
+          blue: '#4A90E2',
+          deepBlue: '#2C3E50',
+          gold: '#F5C26B',
+          yellow: '#F9D423',
+          olive: '#8BAB6A',
+          lightGray: '#E5E5E5',
+          white: '#FFFFFF',
         }
       },
       borderRadius: {

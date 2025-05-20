@@ -3,6 +3,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -14,16 +16,19 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 221 83% 23%;
+    /* DivinusGest Blue */
+    --primary: 210 80% 59%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 261 43% 42%;
+    /* DivinusGest Deep Blue */
+    --secondary: 210 40% 25%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 32 95% 65%;
+    /* DivinusGest Gold */
+    --accent: 40 90% 68%;
     --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
@@ -35,13 +40,13 @@
 
     --radius: 0.5rem;
 
-    --sidebar-background: 221 83% 23%;
+    --sidebar-background: 210 40% 25%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 261 43% 42%;
+    --sidebar-primary: 210 80% 59%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 32 95% 65%;
+    --sidebar-accent: 40 90% 68%;
     --sidebar-accent-foreground: 222.2 47.4% 11.2%;
-    --sidebar-border: 221 83% 33%;
+    --sidebar-border: 210 40% 35%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -55,7 +60,7 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217.2 91.2% 59.8%;
+    --primary: 210 80% 59%;
     --primary-foreground: 222.2 47.4% 11.2%;
 
     --secondary: 217.2 32.6% 17.5%;
@@ -64,7 +69,7 @@
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 32 95% 55%;
+    --accent: 40 90% 68%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
@@ -83,19 +88,75 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6, .brand-text {
+    font-family: 'Playfair Display', serif;
   }
 }
 
 @layer utilities {
   .worship-gradient {
-    @apply bg-gradient-to-r from-worship-blue to-worship-purple;
+    @apply bg-gradient-to-r from-primary to-secondary;
   }
   
   .gold-glow {
-    @apply transition-all duration-300 hover:shadow-lg hover:shadow-worship-gold/20;
+    @apply transition-all duration-300 hover:shadow-lg hover:shadow-accent/20;
   }
 
   .worship-card {
     @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 gold-glow;
   }
+
+  .divinus-gradient {
+    @apply bg-gradient-to-r from-primary to-secondary;
+  }
+  
+  .divinus-card {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 hover:shadow-lg hover:shadow-accent/20 transition-all duration-300;
+  }
+}
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
 }

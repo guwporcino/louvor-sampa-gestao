@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { useDepartment } from "../contexts/DepartmentContext";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Dove } from "lucide-react";
 
 const MainLayout: React.FC = () => {
   const { currentDepartment } = useDepartment();
@@ -16,9 +16,9 @@ const MainLayout: React.FC = () => {
   // Update document title based on current department
   useEffect(() => {
     if (currentDepartment) {
-      document.title = `IbrCaue - ${currentDepartment.name}`;
+      document.title = `DivinusGest - ${currentDepartment.name}`;
     } else {
-      document.title = 'IbrCaue - Gestão de Equipes';
+      document.title = 'DivinusGest - Gestão de Equipes';
     }
   }, [currentDepartment, location]);
 

@@ -3,7 +3,7 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { DollarSign, PieChart, Landmark, ArrowUpDown, FileText, ArrowLeft } from 'lucide-react';
+import { DollarSign, PieChart, Landmark, ArrowUpDown, FileText, ArrowLeft, Dove, Leaf } from 'lucide-react';
 import { FinancialDashboard } from '@/components/financial/FinancialDashboard';
 import { IncomeTransactions } from '@/components/financial/IncomeTransactions';
 import { IncomeCategories } from '@/components/financial/IncomeCategories';
@@ -25,11 +25,19 @@ const Financial = () => {
   return (
     <div className="container mx-auto py-6 space-y-8">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Financeiro</h1>
-          <p className="text-muted-foreground">
-            Gerencie receitas, despesas e contas bancárias da igreja
-          </p>
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 rounded-full bg-divinus-blue flex items-center justify-center relative">
+            <Dove className="h-7 w-7 text-white" />
+            <div className="absolute -bottom-1 -right-1">
+              <Leaf className="h-4 w-4 text-divinus-gold rotate-45" />
+            </div>
+          </div>
+          <div>
+            <h1 className="text-3xl font-serif font-bold tracking-tight text-divinus-deepBlue dark:text-white">Financeiro</h1>
+            <p className="text-muted-foreground">
+              Gerencie receitas, despesas e contas bancárias da igreja
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <Link to="/home">
