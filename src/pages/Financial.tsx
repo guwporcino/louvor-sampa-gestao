@@ -1,134 +1,115 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { BankAccountsList } from "@/components/financial/BankAccountsList";
-import { IncomeTransactions } from "@/components/financial/IncomeTransactions";
-import { ExpenseTransactions } from "@/components/financial/ExpenseTransactions";
-import { FinancialDashboard } from "@/components/financial/FinancialDashboard";
-import { IncomeCategories } from "@/components/financial/IncomeCategories";
-import { ExpenseCategories } from "@/components/financial/ExpenseCategories";
-import { FinancialReports } from "@/components/financial/FinancialReports";
-import { FinancialImport } from "@/components/financial/FinancialImport";
-import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { DollarSign, PieChart, Landmark, ArrowUpDown, FileText, ArrowLeft } from 'lucide-react';
+import FinancialDashboard from '@/components/financial/FinancialDashboard';
+import IncomeTransactions from '@/components/financial/IncomeTransactions';
+import IncomeCategories from '@/components/financial/IncomeCategories';
+import ExpenseTransactions from '@/components/financial/ExpenseTransactions';
+import ExpenseCategories from '@/components/financial/ExpenseCategories';
+import BankAccountsList from '@/components/financial/BankAccountsList';
+import FinancialReports from '@/components/financial/FinancialReports';
+import ExportData from '@/components/financial/ExportData';
+import FinancialImport from '@/components/financial/FinancialImport';
 
 const Financial = () => {
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const { toast } = useToast();
-
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex flex-col space-y-6">
-        <div className="flex flex-col space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">Financeiro</h2>
+    <div className="container mx-auto py-6 space-y-8">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Financeiro</h1>
           <p className="text-muted-foreground">
-            Gerencie as finanças da igreja com controle de contas a pagar e receber.
+            Gerencie receitas, despesas e contas bancárias da igreja
           </p>
         </div>
-        
-        <Separator />
-
-        <Tabs 
-          defaultValue="dashboard" 
-          value={activeTab} 
-          onValueChange={setActiveTab}
-          className="w-full"
-        >
-          <TabsList className="grid grid-cols-4 md:grid-cols-8 mb-4">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="income">Recebimentos</TabsTrigger>
-            <TabsTrigger value="expense">Pagamentos</TabsTrigger>
-            <TabsTrigger value="accounts">Contas</TabsTrigger>
-            <TabsTrigger value="incomeCategories">Cat. Receitas</TabsTrigger>
-            <TabsTrigger value="expenseCategories">Cat. Despesas</TabsTrigger>
-            <TabsTrigger value="reports">Relatórios</TabsTrigger>
-            <TabsTrigger value="import">Importação</TabsTrigger>
-          </TabsList>
-          
-          <Card>
-            <TabsContent value="dashboard">
-              <CardHeader>
-                <CardTitle>Dashboard Financeiro</CardTitle>
-                <CardDescription>Visualize resumo e indicadores financeiros</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FinancialDashboard />
-              </CardContent>
-            </TabsContent>
-            
-            <TabsContent value="income">
-              <CardHeader>
-                <CardTitle>Contas a Receber</CardTitle>
-                <CardDescription>Gerencie recebimentos e entradas financeiras</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <IncomeTransactions />
-              </CardContent>
-            </TabsContent>
-            
-            <TabsContent value="expense">
-              <CardHeader>
-                <CardTitle>Contas a Pagar</CardTitle>
-                <CardDescription>Gerencie pagamentos e despesas</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ExpenseTransactions />
-              </CardContent>
-            </TabsContent>
-            
-            <TabsContent value="accounts">
-              <CardHeader>
-                <CardTitle>Contas Bancárias</CardTitle>
-                <CardDescription>Gerencie suas contas bancárias</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <BankAccountsList />
-              </CardContent>
-            </TabsContent>
-            
-            <TabsContent value="incomeCategories">
-              <CardHeader>
-                <CardTitle>Categorias de Receita</CardTitle>
-                <CardDescription>Gerencie os tipos de entradas financeiras</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <IncomeCategories />
-              </CardContent>
-            </TabsContent>
-            
-            <TabsContent value="expenseCategories">
-              <CardHeader>
-                <CardTitle>Categorias de Despesa</CardTitle>
-                <CardDescription>Gerencie os tipos de despesas</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ExpenseCategories />
-              </CardContent>
-            </TabsContent>
-            
-            <TabsContent value="reports">
-              <CardHeader>
-                <CardTitle>Relatórios</CardTitle>
-                <CardDescription>Gere relatórios e exporte dados</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FinancialReports />
-              </CardContent>
-            </TabsContent>
-            
-            <TabsContent value="import">
-              <CardHeader>
-                <CardTitle>Importação de Dados</CardTitle>
-                <CardDescription>Importe dados financeiros de planilhas Excel</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FinancialImport />
-              </CardContent>
-            </TabsContent>
-          </Card>
-        </Tabs>
+        <div className="flex items-center gap-4">
+          <Link to="/home">
+            <Button variant="outline">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Voltar
+            </Button>
+          </Link>
+        </div>
       </div>
+
+      <Tabs defaultValue="dashboard" className="space-y-4">
+        <TabsList className="grid grid-cols-3 md:grid-cols-9 max-w-full overflow-x-auto">
+          <TabsTrigger value="dashboard" className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4" />
+            <span className="hidden sm:inline">Dashboard</span>
+          </TabsTrigger>
+          <TabsTrigger value="income" className="flex items-center gap-2">
+            <ArrowUpDown className="h-4 w-4" />
+            <span className="hidden sm:inline">Receitas</span>
+          </TabsTrigger>
+          <TabsTrigger value="expense" className="flex items-center gap-2">
+            <ArrowUpDown className="h-4 w-4 rotate-180" />
+            <span className="hidden sm:inline">Despesas</span>
+          </TabsTrigger>
+          <TabsTrigger value="income-categories" className="flex items-center gap-2">
+            <PieChart className="h-4 w-4" />
+            <span className="hidden sm:inline">Cat. Receitas</span>
+          </TabsTrigger>
+          <TabsTrigger value="expense-categories" className="flex items-center gap-2">
+            <PieChart className="h-4 w-4" />
+            <span className="hidden sm:inline">Cat. Despesas</span>
+          </TabsTrigger>
+          <TabsTrigger value="accounts" className="flex items-center gap-2">
+            <Landmark className="h-4 w-4" />
+            <span className="hidden sm:inline">Contas</span>
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Relatórios</span>
+          </TabsTrigger>
+          <TabsTrigger value="export" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Exportar</span>
+          </TabsTrigger>
+          <TabsTrigger value="import" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Importar</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="dashboard" className="space-y-4">
+          <FinancialDashboard />
+        </TabsContent>
+        
+        <TabsContent value="income" className="space-y-4">
+          <IncomeTransactions />
+        </TabsContent>
+        
+        <TabsContent value="expense" className="space-y-4">
+          <ExpenseTransactions />
+        </TabsContent>
+        
+        <TabsContent value="income-categories" className="space-y-4">
+          <IncomeCategories />
+        </TabsContent>
+        
+        <TabsContent value="expense-categories" className="space-y-4">
+          <ExpenseCategories />
+        </TabsContent>
+        
+        <TabsContent value="accounts" className="space-y-4">
+          <BankAccountsList />
+        </TabsContent>
+        
+        <TabsContent value="reports" className="space-y-4">
+          <FinancialReports />
+        </TabsContent>
+        
+        <TabsContent value="export" className="space-y-4">
+          <ExportData />
+        </TabsContent>
+        
+        <TabsContent value="import" className="space-y-4">
+          <FinancialImport />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
