@@ -4,15 +4,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { DollarSign, PieChart, Landmark, ArrowUpDown, FileText, ArrowLeft } from 'lucide-react';
-import FinancialDashboard from '@/components/financial/FinancialDashboard';
-import IncomeTransactions from '@/components/financial/IncomeTransactions';
-import IncomeCategories from '@/components/financial/IncomeCategories';
-import ExpenseTransactions from '@/components/financial/ExpenseTransactions';
-import ExpenseCategories from '@/components/financial/ExpenseCategories';
-import BankAccountsList from '@/components/financial/BankAccountsList';
-import FinancialReports from '@/components/financial/FinancialReports';
-import ExportData from '@/components/financial/ExportData';
-import FinancialImport from '@/components/financial/FinancialImport';
+import { FinancialDashboard } from '@/components/financial/FinancialDashboard';
+import { IncomeTransactions } from '@/components/financial/IncomeTransactions';
+import { IncomeCategories } from '@/components/financial/IncomeCategories';
+import { ExpenseTransactions } from '@/components/financial/ExpenseTransactions';
+import { ExpenseCategories } from '@/components/financial/ExpenseCategories';
+import { BankAccountsList } from '@/components/financial/BankAccountsList';
+import { FinancialReports } from '@/components/financial/FinancialReports';
+import { ExportData } from '@/components/financial/ExportData';
+import { FinancialImport } from '@/components/financial/FinancialImport';
 
 const Financial = () => {
   return (
