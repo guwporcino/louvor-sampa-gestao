@@ -15,6 +15,13 @@ import { ExportData } from '@/components/financial/ExportData';
 import { FinancialImport } from '@/components/financial/FinancialImport';
 
 const Financial = () => {
+  // Sample empty data for ExportData component
+  const emptyExportData = {
+    data: [],
+    filename: 'financial-data',
+    title: 'Dados Financeiros'
+  };
+
   return (
     <div className="container mx-auto py-6 space-y-8">
       <div className="flex justify-between items-center">
@@ -103,7 +110,11 @@ const Financial = () => {
         </TabsContent>
         
         <TabsContent value="export" className="space-y-4">
-          <ExportData />
+          <ExportData 
+            data={emptyExportData.data} 
+            filename={emptyExportData.filename} 
+            title={emptyExportData.title} 
+          />
         </TabsContent>
         
         <TabsContent value="import" className="space-y-4">
