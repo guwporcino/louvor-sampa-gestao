@@ -3,7 +3,7 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { DollarSign, PieChart, Landmark, ArrowUpDown, FileText, ArrowLeft, Dove, Leaf } from 'lucide-react';
+import { DollarSign, PieChart, Landmark, ArrowUpDown, FileText, ArrowLeft, Bird, Leaf } from 'lucide-react';
 import { FinancialDashboard } from '@/components/financial/FinancialDashboard';
 import { IncomeTransactions } from '@/components/financial/IncomeTransactions';
 import { IncomeCategories } from '@/components/financial/IncomeCategories';
@@ -27,7 +27,7 @@ const Financial = () => {
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
           <div className="h-12 w-12 rounded-full bg-divinus-blue flex items-center justify-center relative">
-            <Dove className="h-7 w-7 text-white" />
+            <Bird className="h-7 w-7 text-white" />
             <div className="absolute -bottom-1 -right-1">
               <Leaf className="h-4 w-4 text-divinus-gold rotate-45" />
             </div>

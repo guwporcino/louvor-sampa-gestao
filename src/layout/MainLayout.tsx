@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { useDepartment } from "../contexts/DepartmentContext";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Dove } from "lucide-react";
+import { ArrowLeft, Bird } from "lucide-react";
 
 const MainLayout: React.FC = () => {
   const { currentDepartment } = useDepartment();

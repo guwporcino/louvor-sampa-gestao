@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Users, ChartBar, Calendar, ArrowRight, Archive, Box, Dove, Leaf } from "lucide-react";
+import { DollarSign, Users, ChartBar, Calendar, ArrowRight, Archive, Box, Bird, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Home = () => {
@@ -12,7 +12,7 @@ const Home = () => {
         <header className="text-center mb-12 pt-8">
           <div className="flex justify-center mb-6">
             <div className="h-24 w-24 rounded-full bg-divinus-blue flex items-center justify-center relative">
-              <Dove className="h-14 w-14 text-white" />
+              <Bird className="h-14 w-14 text-white" />
               <div className="absolute -bottom-1 -right-1">
                 <Leaf className="h-6 w-6 text-divinus-gold rotate-45" />
               </div>
@@ -151,8 +151,9 @@ const Home = () => {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full" style={{ backgroundColor: '#8BAB6A', color: 'white' }} 
-                        className="hover:bg-opacity-90">
+                <Button className="w-full" 
+                       style={{ backgroundColor: '#8BAB6A', color: 'white' }}
+                       onClick={() => {}}>
                   Acessar Projetos Sociais
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
