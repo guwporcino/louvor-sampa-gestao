@@ -65,7 +65,7 @@ const Home = () => {
             </Card>
           </Link>
 
-          <Link to="/" className="block group">
+          <Link to="/dashboard" className="block group">
             <Card className="h-full transition-all duration-300 group-hover:shadow-lg border-2 group-hover:border-purple-500">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
