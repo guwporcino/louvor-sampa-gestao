@@ -33,7 +33,7 @@ const Financial = () => {
             </div>
           </div>
           <div>
-            <h1 className="text-3xl font-serif font-bold tracking-tight text-divinus-deepBlue dark:text-white">Financeiro</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-divinus-deepBlue dark:text-white">Financeiro</h1>
             <p className="text-muted-foreground">
               Gerencie receitas, despesas e contas bancárias da igreja
             </p>

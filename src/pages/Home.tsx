@@ -18,7 +18,7 @@ const Home = () => {
               </div>
             </div>
           </div>
-          <h1 className="font-serif text-5xl font-bold tracking-tight mb-2 text-divinus-deepBlue dark:text-white">DivinusGest</h1>
+          <h1 className="text-5xl font-bold tracking-tight mb-2 text-divinus-deepBlue dark:text-white">DivinusGest</h1>
           <p className="text-xl text-gray-600 dark:text-gray-400">Sistema de Gestão para Igrejas</p>
         </header>
 
@@ -32,7 +32,7 @@ const Home = () => {
                     <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </div>
-                <CardTitle className="text-3xl pt-4 font-serif">Financeiro</CardTitle>
+                <CardTitle className="text-3xl pt-4">Financeiro</CardTitle>
                 <CardDescription className="text-base">
                   Gestão financeira completa da igreja
                 </CardDescription>
@@ -77,7 +77,7 @@ const Home = () => {
                     <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </div>
-                <CardTitle className="text-3xl pt-4 font-serif">Gestão de Equipes</CardTitle>
+                <CardTitle className="text-3xl pt-4">Gestão de Equipes</CardTitle>
                 <CardDescription className="text-base">
                   Gerenciamento de ministérios e equipes
                 </CardDescription>
@@ -123,7 +123,7 @@ const Home = () => {
                     <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </div>
-                <CardTitle className="text-3xl pt-4 font-serif">Projetos Sociais</CardTitle>
+                <CardTitle className="text-3xl pt-4">Projetos Sociais</CardTitle>
                 <CardDescription className="text-base">
                   Gestão de doações e ações sociais
                 </CardDescription>
